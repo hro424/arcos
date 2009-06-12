@@ -1,0 +1,36 @@
+
+    ArcOS Readme
+
+    Hiroo Ishikawa
+    Last changed: $Date: 2007-11-18 14:57:17 +0900 (Sun, 18 Nov 2007) $
+
+
+Thank you for trying ArcOS.  To try out ArcOS, please read the following instructions.
+
+1. Requirements
+To build ArcOS binary, you need:
+
+cmake version 2.4 or after
+gcc version 3.4
+g++ version 3.4
+
+Please make sure these programs are ready in your host computer.
+
+2. Build
+
+- Make a build directory, for example:
+  % cd $ARCOS_SOUCE_DIR
+  % mkdir build
+
+- Run cmake in the build directory.
+  % cd build
+  % CC=gcc-3.4 CXX=g++-3.4 cmake ..
+
+or, run ccmake to further configurations.
+  % cd build
+  % CC=gcc-3.4 CXX=g++-3.4 ccmake ..
+
+- Run make and install.
+  % make
+  % make install
+

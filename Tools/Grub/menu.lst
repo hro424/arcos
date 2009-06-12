@@ -1,0 +1,18 @@
+root (fd0,0)
+default=0
+timeout=0
+serial --port=0x3f8 --speed=115200
+terminal --timeout=0 serial
+
+title L4Ka::ArcOS-hello
+        kernel /boot/kickstart
+        module /boot/x86-kernel
+        module /boot/sigma0
+	module /boot/art
+	module /boot/p3
+        module /boot/ramdisk
+	module /system/ram
+        module /system/kb
+        module /system/console
+        module /system/msh
+

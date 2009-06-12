@@ -1,0 +1,60 @@
+#!/usr/bin/ruby
+
+#
+# mkrd [-a] [-o file] files...
+#
+# -a    append given files
+# -o    output to the file
+#
+
+require "optparse"
+
+DEFAULT_OUTPUT = "rd.img"
+
+options = [ ["a", ""], ["o", "string"] ]
+
+program_config = Hash.new
+program_config[:a] = "wb"
+program_config[:o] = DEFAULT_OUTPUT
+
+opts = OptionParser.new
+opts.banner += " files..."
+opts.on("-a", "Append mode") { |v| program_config[:a] = "ab" }
+opts.on("-o file", "Specify output") { |v| program_config[:o] = v }
+opts.parse!(ARGV)
+
+if ARGV.length == 0
+    print opts.help
+    exit(false)
+end
+
+if program_config[:a] == "ab" and
+   program_config[:o] == DEFAULT_OUTPUT
+    p "Give output in the append mode"
+    exit(false)
+end
+
+begin
+    output = File.open(program_config[:o],
+                       program_config[:a])
+
+    ARGV.each { |file_name|
+        output.write(File.basename(file_name))
+        output.putc(0)
+
+        file = File.open(file_name, "rb")
+        output.write(file.stat.size)
+        output.putc(0)
+
+        begin
+            while data = file.read(4096)
+                output.write(data)
+            end
+        ensure
+            file.close
+        end
+    }
+ensure
+    output.close
+end
+

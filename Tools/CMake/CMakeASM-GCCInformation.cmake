@@ -1,0 +1,4 @@
+set(ASM_DIALECT "-GCC")
+set(CMAKE_ASM${ASM_DIALECT}_SOURCE_FILE_EXTENSIONS s;S)
+include(CMakeASMInformation)
+set(ASM_DIALECT)

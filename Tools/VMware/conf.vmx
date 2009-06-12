@@ -1,0 +1,40 @@
+#!/usr/bin/vmware
+virtualHW.vertion = "6"
+config.version = "8"
+guestOS = "other"
+
+ide0:0.present = "TRUE"
+ide0:0.fileName = "hd0.vmdk"
+ide0:0.deviceType = "disk"
+
+scsi0.present = "TRUE"
+
+floppy0.fileName = "/dev/fd0"
+displayName = "Arc Operating System"
+extendedConfigFile = "conf.vmxf"
+virtualHW.productCompatibility = "hosted"
+tools.upgrade.policy = "manual"
+
+memsize = "512"
+
+ethernet0.connectionType = "hostonly"
+ethernet0.present = "TRUE"
+ethernet0.wakeOnPcktRcv = "FALSE"
+
+serial0.present = "TRUE"
+serial0.fileType = "pipe"
+serial0.fileName = "/tmp/vmware-@USER@/ttyS0"
+
+ide0:0.redo = ""
+ethernet0.addressType = "generated"
+uuid.location = "56 4d 1b 63 5c e6 49 a4-a4 c6 71 aa d0 36 b2 d8"
+uuid.bios = "56 4d 1b 63 5c e6 49 a4-a4 c6 71 aa d0 36 b2 d8"
+ethernet0.generatedAddress = "00:0c:29:36:b2:d8"
+ethernet0.generatedAddressOffset = "0"
+
+floppy0.present = "FALSE"
+
+virtualHW.version = "6"
+
+pciBridge0.present = "TRUE"
+svga.autodetect = "TRUE"

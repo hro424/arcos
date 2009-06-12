@@ -1,0 +1,34 @@
+#!/usr/bin/ruby
+
+##
+## @brief   Generate a sound file for testing the Audio driver
+## @file    Tools/Scripts/mksnd
+## @author  Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
+## @since   September 2008
+##
+
+#$Id$
+
+#
+# usage: mksnd length
+#
+
+MIN = 0
+MAX = 255
+STEP = 4
+
+length = ARGV[0].to_i
+
+file = File.open("sound.bin", "wb")
+
+length.times { |i|
+#    file.write([1].pack("C"))
+    MIN.step(MAX, STEP) { |j|
+        file.write([j].pack("C"))
+    }
+    MAX.step(MIN, -STEP) { |j|
+        file.write([j].pack("C"))
+    }
+}
+
+file.close

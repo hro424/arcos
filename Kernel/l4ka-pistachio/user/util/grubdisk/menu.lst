@@ -1,0 +1,8 @@
+timeout 0
+
+title = L4Ka::Pistachio pingpong 
+kernel=/kickstart
+module=/kernel
+module=/sigma0
+module=/APP
+

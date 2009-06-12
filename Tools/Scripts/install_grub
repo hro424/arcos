@@ -1,0 +1,24 @@
+#!/bin/bash
+
+## 
+##  @brief  Install GRUB to a disk image file
+##  @file   Tools/Scripts/install_grub
+##  @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
+##  @since  September 2008
+## 
+
+#$Id$
+
+ROOT_DISK=$1
+
+GRUB=grub
+BMAP_FILE=device.bmap
+
+echo "Intalling GRUB to ${ROOT_DISK}..."
+
+echo "(hd0) ${ROOT_DISK}" > ${BMAP_FILE}
+echo "root (hd0,0)
+setup (hd0)
+quit" | ${GRUB} --batch --device-map=${BMAP_FILE}
+
+rm ${BMAP_FILE}

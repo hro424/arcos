@@ -1,0 +1,36 @@
+Proposed axis of the paper (according to the CFP): should focus on mobile devices and their need for transparency.
+Two good points for us are (1) that L4 is now commonly used in embedded systems (NICTA::L4-embedded, OKL4, etc.) and (2) that our framework is do not add too much load (i.e. no snapshotting or redundant data).
+
+- Specifics of micro-kernel based device drivers
+ - Always follow the client/server pattern (we checked all Minix drivers and figured out they all continuously reply to messages)
+
+
+Main idea: think device drivers programming under a dedicated framework that takes these specifics and their recovery into account.
+More particularly: how to react on failure?
+
+In this article, we aim at proposing a drivers development framework adapted to microkernels that takes recovery into account and improves the chances to have a successful and transparent recovery upon driver failure. We are aiming at treating transient bugs, i.e. bugs that are not deterministic by the sole state of the driver but have been introduced by an external, non-predictable event (unfortunate timing, unavailability of some other service, etc.). These bugs account for the biggest part of failures in device drivers [citation needed].
+
+The paper "Exploring Failure Transparency and the Limits of Generic Recovery" makes an extensive study of the different forms of software recovery. The authors highlight the fact that a successful and transparent recovery depends on the capability for the recovery mechanism to preserve state that is useful and discard state that may have caused the failure.
+Points are:
+1) Preserve important state (particularly, state related to the hardware state) and discard state that is recomputable, to maximize the chance to erase faulty state (success)
+2) Be able to re-run the request that caused the failure so that the rest of the system is not conscious of the failure (transparency). This is helped by the server design of L4 services: atomicity of execution is the processing of one input message, which can be a request from another server of the result of an interrupt.
+
+Important state to preserve includes:
+- Driver state that reflects the current state of the hardware. Many drivers (video, audio, webcam, \ldots) change the hardware state and then wait for requests to work with the new state of the hardware. For such drivers, a complete reset of the managed hardware is unacceptable, because (1) this would have a visible side-effect for the user or other programs that would break the transparency rule, and (2) future requests, which are tailored for the pre-failure state of the hardware, may lead to unexpected results on the reinitialized state.
+- State that is used across requests by the driver, i.e. counters, etc.
+
+Recomputable, non-significant state includes:
+- All the state which lifespan is limited to the processing of a request. This state is totally recomputable from the input request. Therefore, we do not need sophisticated and memory-costly snapshoting mechanisms to make backups of the driver state in the middle of processing a request.
+- State listed in the previous list that can be recomputed by querying the hardware or infered from the rest of the driver's state.
+
+The base rule of this recovery mechanism is to only preserve what is strictly necessary to come back to the state that lead to the failure, by recomputing other data. That way, we can hope the transient bug has been wiped away (Mmmm, this is not only applicable to our driver, but is a general rule of recovery).
+
+As it is difficult to discriminate data that is relevant to the driver's state from neglectable data, we decided to let the programmer choose which data of the driver must be preserved across crashes, using specific compiler attributes.
+
+
+Side questions:
+
+What if a request has partially been processed? Ex: half of the data written to the parallel port -> on recovery, the driver should then modify the input message to make sure only the relevant part of it is processed.
+
+
+ vim:linebreak:

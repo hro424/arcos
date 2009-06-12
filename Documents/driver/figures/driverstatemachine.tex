@@ -1,0 +1,10 @@
+\tikzstyle {state} = [draw,shape=ellipse]
+\draw (0,0) node[state](requestloop){Request Loop};
+\draw (-3,1) node[state](init){Init};
+\draw (-3,-1) node[state](recover){Recover};
+\draw (4,0) node[state](finalize){Finalize};
+
+\draw[->] (init) -- (requestloop);
+\draw[->] (recover) -- (requestloop);
+\draw[->] (requestloop) -- (finalize);
+\draw[->] (requestloop) .. controls +(0,-1) .. node[right]{Driver restart} (recover);
