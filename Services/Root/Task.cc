@@ -203,8 +203,7 @@ StartThread(const Thread *thread, L4_ThreadId_t pager,
 }
 
 /**
- * Create a new task, i.e. an address space into which threads can execute.
- * Also create the root thread of the task.
+ * Create a new task (an address space + a root thread).
  */
 stat_t
 CreateTask(Space **s, Bool shadow)

@@ -74,6 +74,8 @@ public:
 extern SystemHelper System;
 
 #define FATAL(msg)      System.Fatal(#msg, __FILE__, __LINE__)
+#define SECTION(x)      __attribute__((section(x)))
+#define SEC_INIT        ".init"
 
 int atoi(const char* str);
 

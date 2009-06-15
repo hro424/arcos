@@ -41,6 +41,7 @@
 
 #include <Types.h>
 #include <List.h>
+#include "Unknown.h"
 
 class Command;
 class UnknownCommand;

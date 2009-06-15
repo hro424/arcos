@@ -15,6 +15,7 @@ ENTRY(_start)
 
 PHDRS
 {
+    init PT_LOAD FLAGS (5) ;
     text PT_LOAD FLAGS (5) ;
     data PT_LOAD ;
     pdata PT_LOAD ;
@@ -24,7 +25,7 @@ SECTIONS
 {
     . = 0x20000000;
 
-    .init   : { *(.init) } : text
+    .init   : { *(.init) } : init
 
     .text   : { *(.text) } : text
 

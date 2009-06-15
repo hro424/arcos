@@ -42,6 +42,14 @@
 #include <System.h>
 #include "Command.h"
 #include "Parser.h"
+#include "Empty.h"
+#include "Exit.h"
+#include "History.h"
+#include "Ps.h"
+#include "Kill.h"
+#include "Fexec.h"
+#include "Exec.h"
+#include "List.h"
 
 #define DEFAULT_FS  "ram"
 

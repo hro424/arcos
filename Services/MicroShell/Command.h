@@ -38,11 +38,7 @@
 #ifndef ARC_MICRO_SHELL_COMMAND_H
 #define ARC_MICRO_SHELL_COMMAND_H
 
-#include <FileStream.h>
 #include <Types.h>
-#include <sys/Config.h>
-#include <l4/types.h>
-#include <Console.h>
 
 class Command
 {
@@ -63,100 +59,6 @@ public:
     /// Obtains human-readable help
     ///
     const char *Help() const;
-};
-
-
-class EmptyCommand : public Command
-{
-public:
-    virtual Bool Match(const char *str, size_t len);
-    virtual stat_t Execute(int argc, char *argv[]);
-};
-
-
-class UnknownCommand : public Command
-{
-private:
-    static const char *MESSAGE;
-public:
-    virtual Bool Match(const char *str, size_t len);
-    virtual stat_t Execute(int argc, char *argv[]);
-};
-
-
-class ExitCommand : public Command
-{
-private:
-    static const char *NAME1;
-    static const char *NAME2;
-
-public:
-    virtual Bool Match(const char *str, size_t len);
-    virtual stat_t Execute(int argc, char *argv[]);
-};
-
-
-class HistoryCommand : public Command
-{
-private:
-    static const char *NAME;
-
-public:
-    virtual Bool Match(const char *str, size_t len);
-    virtual stat_t Execute(int argc, char *argv[]);
-};
-
-
-class ExecCommand : public Command
-{
-private:
-    FileStream      _fs;
-    char*           _command_name;
-
-public:
-    virtual Bool Match(const char *str, size_t len);
-    virtual stat_t Execute(int argc, char *argv[]);
-};
-
-
-class FexecCommand : public Command
-{
-private:
-    static const char*  NAME;
-public:
-    virtual Bool Match(const char* str, size_t len);
-    virtual stat_t Execute(int argc, char* argv[]);
-};
-
-
-class PsCommand : public Command
-{
-private:
-    static const char*  NAME;
-public:
-    virtual Bool Match(const char* str, size_t len);
-    virtual stat_t Execute(int argc, char* argv[]);
-};
-
-
-class KillCommand : public Command
-{
-private:
-    static const char*  NAME;
-public:
-    virtual Bool Match(const char* str, size_t len);
-    virtual stat_t Execute(int argc, char* argv[]);
-};
-
-class ListCommand : public Command
-{
-private:
-    static const char*  NAME;
-    FileStream      _fs;
-
-public:
-    virtual Bool Match(const char* str, size_t len);
-    virtual stat_t Execute(int argc, char* argv[]);
 };
 
 #endif // ARC_MICRO_SHELL_COMMAND_H

@@ -260,7 +260,7 @@ Ext2FsServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 
 const char* Ext2FsServer::DEFAULT_DISK_SERVER = "pata";
 
-stat_t
+SECTION(SEC_INIT) stat_t
 Ext2FsServer::Initialize0(Int argc, char* argv[])
 {
     stat_t      err;
@@ -288,7 +288,10 @@ Ext2FsServer::Initialize0(Int argc, char* argv[])
     }
 
     System.Print("'%s' looking for '%s'...\n", argv[0], server);
-    while (_disk->Initialize(server, DEFAULT_PORT, DEFAULT_DISK) != ERR_NONE) ;
+    err = _disk->Initialize(server, DEFAULT_PORT, DEFAULT_DISK);
+    if (err != ERR_NONE) {
+        return static_cast<stat_t>(-1);
+    }
     System.Print("done %.8lX\n", _disk->Id().raw);
 
     if ((err = _disk->Open()) != ERR_NONE) {
@@ -324,7 +327,7 @@ exit:
     return static_cast<stat_t>(-1);
 }
 
-stat_t
+SECTION(SEC_INIT) stat_t
 Ext2FsServer::Initialize(Int argc, char* argv[])
 {
     for (int i = 0; i < NUM_CLIENTS; i++) {

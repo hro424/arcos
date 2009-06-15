@@ -61,7 +61,11 @@ stat_t
 Disk::Initialize(const char *name, UInt iface, UInt dev)
 {
     ENTER;
-    NameService::Get(name, &_tid);
+    stat_t err = NameService::Get(name, &_tid);
+    if (err != ERR_NONE) {
+        return err;
+    }
+
     _iface = iface;
     _dev = dev;
     _session = new Session(_tid);

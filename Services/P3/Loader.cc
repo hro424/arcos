@@ -87,6 +87,9 @@ TaskLoader::Load(Task* t, const char* fs, const char* path, UInt type, UInt freq
         }
     }
     else if ((info->type & 0x0F) == LoadInfo::LOAD_INFO_MODULE) {
+        //
+        // Load the program in archive
+        //
         err = Load0(t, info->task_map.text_start, info->task_map.text_size);
         if (err != ERR_NONE) {
             return err;
