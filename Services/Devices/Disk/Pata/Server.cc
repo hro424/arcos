@@ -62,13 +62,24 @@ protected:
     virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg);
 public:
-    virtual const char* const Name();
+    virtual const char* const Name() { return "pata"; }
+
     virtual stat_t Initialize(Int argc, char* argv[]);
-    virtual stat_t Recover(Int argc, char* argv[]);
+
+    virtual stat_t Recover(Int argc, char* argv[])
+    { return Initialize(argc, argv); }
+
     virtual stat_t Exit();
+    {
+        ENTER;
+        _port->DisableInterrupt();
+        _port->DisableDMA();
+        EXIT;
+        return ERR_NONE;
+    }
 };
 
-static UInt counter = 0;
+//FI: static UInt counter = 0;
 
 stat_t
 PataServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
@@ -86,7 +97,7 @@ PataServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     }
 
     //XXX: Fault injection
-    counter++;
+    //FI: counter++;
     /*
     if (counter % 1400 == 0) {
         System.Print("!!! Pata: FI %lu :-(\n", counter);
@@ -277,28 +288,6 @@ PataServer::Initialize(Int argc, char* argv[])
 
     EXIT;
     return ERR_NONE;
-}
-
-stat_t
-PataServer::Recover(Int argc, char* argv[])
-{
-    return Initialize(argc, argv);
-}
-
-stat_t
-PataServer::Exit()
-{
-    ENTER;
-    _port->DisableInterrupt();
-    _port->DisableDMA();
-    EXIT;
-    return ERR_NONE;
-}
-
-const char* const
-PataServer::Name()
-{
-    return "pata";
 }
 
 ARC_SHS_SERVER(PataServer)

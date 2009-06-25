@@ -30,8 +30,8 @@
  *                
  ********************************************************************/
 
-	.text
-	.global _start
+        .text
+        .global _start
 _start:
 
         /* We assume we are multibooted. Save the multiboot info
@@ -41,25 +41,25 @@ _start:
         movl    %eax, grub_mbi_flags
         movl    %eax, %esi
         movl    %ebx, %edi
-	cli     /* disable int's */
-	cld     /* clear direction flag */
-	mov     %ds, %ax
-	mov     %ax, %es
-	mov     %ax, %fs
-	mov     %ax, %gs
-	mov     %ax, %ss
+        cli     /* disable int's */
+        cld     /* clear direction flag */
+        mov     %ds, %ax
+        mov     %ax, %es
+        mov     %ax, %fs
+        mov     %ax, %gs
+        mov     %ax, %ss
 
-	/* load temporary stack pointer */
-	lea     _mini_stack, %esp
+        /* load temporary stack pointer */
+        lea     _mini_stack, %esp
 
-	/* no need for further initialization, just call loader */
+        /* no need for further initialization, just call loader */
         call    main
         
         /* We should never return from the loader */
 1:      jmp     1b
 
         .align  16
-	.space	8192
+        .space	8192
 _mini_stack:
 
 
@@ -67,13 +67,13 @@ _mini_stack:
 
         jmp     _start
         .ascii  "KICKSTART"
-	.align 16, 0x90
+        .align  16, 0x90
 __mb_header:
-	.long   0x1BADB002;
-	.long   0x00010000;
-	.long   - 0x00010000 - 0x1BADB002;
-	.long   __mb_header;
-	.long   _start;
-	.long   _edata;
-	.long   _end;
-	.long   _start;
+        .long   0x1BADB002;
+        .long   0x00010000;
+        .long   - (0x00010000 + 0x1BADB002);
+        .long   __mb_header;
+        .long   _start;
+        .long   _edata;
+        .long   _end;
+        .long   _start;
