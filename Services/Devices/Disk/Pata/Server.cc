@@ -69,7 +69,7 @@ public:
     virtual stat_t Recover(Int argc, char* argv[])
     { return Initialize(argc, argv); }
 
-    virtual stat_t Exit();
+    virtual stat_t Exit()
     {
         ENTER;
         _port->DisableInterrupt();
