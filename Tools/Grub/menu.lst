@@ -8,10 +8,10 @@ title L4Ka::ArcOS-hello
         kernel /boot/kickstart
         module /boot/x86-kernel
         module /boot/sigma0
-	module /boot/art
-	module /boot/p3
+        module /boot/art
+        module /boot/p3
         module /boot/ramdisk
-	module /system/ram
+        module /system/ram
         module /system/kb
         module /system/console
         module /system/msh

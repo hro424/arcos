@@ -1,0 +1,7 @@
+#ifndef ARC_FAULT_INJECTION_H
+#define ARC_FAULT_INJECTION_H
+
+#define FI_TEXT_AREA    1
+#define FI_DATA_AREA    2
+
+#endif // ARC_FAULT_INJECTION_H
