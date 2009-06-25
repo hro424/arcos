@@ -11,7 +11,7 @@
 
 ROOT_DISK=$1
 
-GRUB=grub
+GRUB=/usr/sbin/grub
 BMAP_FILE=device.bmap
 
 echo "Intalling GRUB to ${ROOT_DISK}..."
