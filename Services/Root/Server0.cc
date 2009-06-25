@@ -91,6 +91,7 @@ static stat_t HandleUnsetInterrupt(L4_Msg_t *msg);
 static stat_t HandlePriority(L4_Msg_t *msg);
 static stat_t HandleExecTask(L4_ThreadId_t tid, L4_Msg_t *msg);
 static stat_t HandleExitTask(L4_ThreadId_t tid, L4_Msg_t *msg);
+static stat_t HandleKillTask(L4_Msg_t* msg);
 
 static stat_t HandleNsSearch(L4_Msg_t *msg);
 static stat_t HandleNsInsert(L4_Msg_t *msg);
@@ -109,6 +110,7 @@ static stat_t HandleSnapshot(L4_ThreadId_t tid, L4_Msg_t *msg);
 ///
 static stat_t HandleRestore(L4_ThreadId_t tid, L4_Msg_t *msg);
 
+static stat_t HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg);
 
 
 void
@@ -176,6 +178,9 @@ begin:
             case MSG_ROOT_EXEC:
                 HandleExecTask(peer, &msg);
                 break;
+            case MSG_ROOT_KILL:
+                HandleKillTask(&msg);
+                break;
             case MSG_ROOT_EXIT:
                 HandleExitTask(peer, &msg);
                 goto begin;
@@ -188,6 +193,9 @@ begin:
                 break;
             case MSG_ROOT_RESTORE:
                 HandleRestore(peer, &msg);
+                break;
+            case MSG_ROOT_INJECT:
+                HandleInject(peer, &msg);
                 break;
             case MSG_NS_SEARCH:
                 DOUT("ns search from %.8lX\n", peer.raw);
@@ -261,8 +269,8 @@ static stat_t
 HandleDeleteTask(L4_Msg_t *msg)
 {
     L4_ThreadId_t   tid;
-    Space           *space;
-    stat_t        err;
+    Space*          space;
+    stat_t          err;
 
     ENTER;
 
@@ -450,10 +458,16 @@ HandleExecTask(L4_ThreadId_t tid, L4_Msg_t *msg)
     argc = L4_Get(msg, 0);
     argv = L4_Get(msg, 1);
 
+    //
+    // Find the page where the argv is allocated.
+    //
     if (space->SearchMap(argv & PAGE_MASK, &frame) != ERR_NONE) {
         return Ipc::ReturnError(msg, ERR_NOT_FOUND);
     }
 
+    //
+    // Convert user's address to root task's address
+    //
     argv = MainPft.GetAddress(frame) + (argv & ~PAGE_MASK);
 
     char** pp = (char**)argv;
@@ -474,6 +488,34 @@ HandleExecTask(L4_ThreadId_t tid, L4_Msg_t *msg)
     EXIT;
     return ERR_NONE;
 }
+
+static stat_t
+HandleKillTask(L4_Msg_t *msg)
+{
+    L4_ThreadId_t   tid;
+    Space*          space;
+
+    ENTER;
+
+    if (Ipc::CheckPayload(msg, 0, 1)) {
+        return Ipc::ReturnError(msg, ERR_INVALID_ARGUMENTS);
+    }
+
+    tid.raw = L4_Get(msg, 0);
+    if (FindTask(tid, &space) != ERR_NONE) {
+        DOUT("find task failed\n");
+        return Ipc::ReturnError(msg, ERR_INVALID_SPACE);
+    }
+
+    L4_Word_t   reg = 0;
+    L4_Msg_t    m;
+    L4_Put(&m, MSG_ROOT_EXIT, 1, &reg, 0, 0);
+    Ipc::Send(space->GetPager(), &m);
+
+    EXIT;
+    return Ipc::ReturnError(msg, ERR_NONE);
+}
+
 
 static stat_t
 HandleExitTask(L4_ThreadId_t tid, L4_Msg_t *msg)
@@ -674,5 +716,28 @@ HandleRestore(L4_ThreadId_t tid, L4_Msg_t *msg)
     L4_MsgPut(msg, 0, 2, reg, 0, 0);
     EXIT;
     return ERR_NONE;
+}
+
+static stat_t
+HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg)
+{
+    Space*          space;
+    L4_ThreadId_t   target;
+    L4_Msg_t        m;
+    L4_Word_t       area;
+
+    if (Ipc::CheckPayload(msg, 0, 2)) {
+        return Ipc::ReturnError(msg, ERR_INVALID_ARGUMENTS);
+    }
+
+    target.raw = L4_Get(msg, 0);
+    area = L4_Get(msg, 1);
+
+    if (FindTask(target, &space) != ERR_NONE) {
+        return Ipc::ReturnError(msg, ERR_INVALID_SPACE);
+    }
+
+    L4_Put(&m, MSG_PEL_INJECT, 1, &area, 0, 0);
+    return Ipc::Send(space->GetPager(), &m);
 }
 

@@ -37,4 +37,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/System/include
     ${CMAKE_SOURCE_DIR}/Libraries/Arc/include)
 set(LIB_NAME audio0)
+#add_definitions(-DSYS_DEBUG)
+#add_definitions(-DSYS_DEBUG_CALL)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Library.cmake)

@@ -143,13 +143,16 @@ stat_t
 Audio::Play()
 {
     ENTER;
-    if (!isConnected()) return ERR_IPC_NO_PARTNER;
+    if (!isConnected()) {
+        return ERR_IPC_NO_PARTNER;
+    }
+
     L4_Msg_t msg;
     L4_Put(&msg, MSG_AUDIO_PLAY, 0, 0, 0, 0);
     stat_t err = Ipc::Call(_server, &msg, &msg);
-    if (err != ERR_NONE) { return err; }
+
     EXIT;
-    return ERR_NONE;
+    return err;
 }
 
 stat_t

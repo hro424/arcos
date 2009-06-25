@@ -25,7 +25,7 @@ SECTIONS
 {
     . = 0x20000000;
 
-    .init   : { *(.init) } : init
+    .init   : { *(.init) } : text
 
     .text   : { *(.text) } : text
 

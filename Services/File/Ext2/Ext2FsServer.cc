@@ -260,7 +260,8 @@ Ext2FsServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 
 const char* Ext2FsServer::DEFAULT_DISK_SERVER = "pata";
 
-SECTION(SEC_INIT) stat_t
+//SECTION(SEC_INIT)
+stat_t
 Ext2FsServer::Initialize0(Int argc, char* argv[])
 {
     stat_t      err;
@@ -327,7 +328,8 @@ exit:
     return static_cast<stat_t>(-1);
 }
 
-SECTION(SEC_INIT) stat_t
+//SECTION(SEC_INIT)
+stat_t
 Ext2FsServer::Initialize(Int argc, char* argv[])
 {
     for (int i = 0; i < NUM_CLIENTS; i++) {

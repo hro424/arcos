@@ -40,6 +40,7 @@
 #define ARC_RING_BUFFER_H
 
 #include <Types.h>
+#include <MemoryAllocator.h>
 
 class RingBuffer
 {
@@ -78,7 +79,7 @@ protected:
 
 public:
     RingBuffer(size_t size);
-    virtual ~RingBuffer();
+    virtual ~RingBuffer() { mfree(_head); }
 
     ///
     /// Reads data in the buffer.  The data read is removed from the buffer.

@@ -36,8 +36,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/Audio/include
     ${CMAKE_SOURCE_DIR}/Libraries/SelfHealing/include)
 set(MODULE_NAME audio)
-#add_definitions(-DSYS_DEBUG)
-#add_definitions(-DSYS_DEBUG_CALL)
+add_definitions(-DSYS_DEBUG)
+add_definitions(-DSYS_DEBUG_CALL)
 add_definitions(-DNO_SYS_HEADERS)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Driver.cmake)
 

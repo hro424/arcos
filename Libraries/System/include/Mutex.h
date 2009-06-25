@@ -45,12 +45,14 @@
 class Mutex
 {
 private:
-    L4_Word_t   _mutex;
+    L4_Word_t   _mutex_;
 
 public:
-    Mutex() : _mutex(0) {}
+    Mutex() : _mutex_(0) {}
 
-    void Initialize() { _mutex = 0; }
+    ~Mutex() {}
+
+    void Initialize() { _mutex_ = 0; }
 
     int TryLock() {
         L4_Word_t   id = L4_Myself().raw;
@@ -59,8 +61,8 @@ public:
         __asm__ __volatile__ ("lock             \n"
                               "cmpxchgl %1, %2  \n"
                               : "=a" (ret)
-                              : "r" (id), "m" (_mutex), "0" (0)
-                              : "memory");
+                              : "r" (id), "m" (_mutex_), "0" (0)
+                              : );
         return ret;
     }
 
@@ -71,21 +73,21 @@ public:
     }
 
     void Unlock() {
-        _mutex = 0;
+        _mutex_ = 0;
     }
 };
 
 class ScopedLock
 {
 private:
-    Mutex*      _mutex;
+    Mutex*      _mutex_;
 
     ScopedLock();
     ScopedLock(ScopedLock& obj);
 
 public:
-    ScopedLock(Mutex* mutex) : _mutex(mutex) { _mutex->Lock(); }
-    ~ScopedLock() { _mutex->Unlock(); }
+    ScopedLock(Mutex* mutex) : _mutex_(mutex) { _mutex_->Lock(); }
+    ~ScopedLock() { _mutex_->Unlock(); }
 };
 
 #endif  // ARC_MUTEX_H

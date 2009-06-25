@@ -47,77 +47,48 @@ private:
     Semaphore*  _semaphore;
 
 public:
-    LineBuffer(size_t size);
-    virtual ~LineBuffer();
+    LineBuffer(size_t size) : RingBuffer(size)
+    { _semaphore = new Semaphore(0); }
 
-    virtual char *ReadLine();
-    virtual void Put(char c);
-    virtual bool Back();
-    virtual void Wait();
-    virtual void Notify();
-};
+    virtual ~LineBuffer() { delete _semaphore; }
 
-LineBuffer::LineBuffer(size_t size) : RingBuffer(size)
-{
-    // This semaphore has no limit.
-    _semaphore = new Semaphore(0);
-}
+    virtual char *ReadLine()
+    {
+        if (_read_ptr == _write_ptr) {
+            return 0;
+        }
 
-LineBuffer::~LineBuffer()
-{
-    delete _semaphore;
-}
-
-inline char*
-LineBuffer::ReadLine()
-{
-    if (_read_ptr == _write_ptr) {
-        return 0;
-    }
-
-    char*   ptr = _read_ptr;
-    while (*_read_ptr != '\0') {
+        char*   ptr = _read_ptr;
+        while (*_read_ptr != '\0') {
+            _read_ptr++;
+            _count--;
+        }
         _read_ptr++;
         _count--;
-    }
-    _read_ptr++;
-    _count--;
-    return ptr;
-}
-
-inline void
-LineBuffer::Put(char c)
-{
-    Write(&c, 1);
-}
-
-inline bool
-LineBuffer::Back()
-{
-    if (_count == 0) {
-        return false;
+        return ptr;
     }
 
-    if (_write_ptr == _head) {
-        _write_ptr = _tail;
+    virtual void Put(char c) { Write(&c, 1); }
+
+    virtual bool Back()
+    {
+        if (_count == 0) {
+            return false;
+        }
+
+        if (_write_ptr == _head) {
+            _write_ptr = _tail;
+        }
+        _write_ptr--;
+        *_write_ptr = 0;
+        _count--;
+        return true;
     }
-    _write_ptr--;
-    *_write_ptr = 0;
-    _count--;
-    return true;
-}
 
-inline void
-LineBuffer::Wait()
-{
-    _semaphore->Down();
-}
+    virtual void Wait() { _semaphore->Down(); }
 
-inline void
-LineBuffer::Notify()
-{
-    _semaphore->Up();
-}
+    virtual void Notify() { _semaphore->Up(); }
+};
 
 #endif // ARC_MICRO_SHELL_LINE_BUFFER_H
 

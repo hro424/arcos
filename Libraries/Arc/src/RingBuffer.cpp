@@ -52,11 +52,6 @@ RingBuffer::RingBuffer(size_t size = DEFAULT_BUFFER_SIZE)
     _tail = _head + _size;
 }
 
-RingBuffer::~RingBuffer()
-{
-    mfree(_head);
-}
-
 size_t
 RingBuffer::Read(char* buf, size_t len)
 {

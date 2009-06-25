@@ -165,7 +165,10 @@ play()
 {
     ENTER;
     DOUT("play\n");
-    Audio::Play();
+    stat_t err = Audio::Play();
+    if (err != ERR_NONE) {
+        DOUT("Error %u\n", err);
+    }
 
 #ifdef ASYNC
     for (;;) {
@@ -217,9 +220,9 @@ static stat_t
 init_audio(const char* audio_server)
 {
     AudioParameters params;
+    stat_t          err;
 
 #ifdef ASYNC
-    stat_t          err;
     size_t          rsize;
 
     _current_source = _source_1;
@@ -254,9 +257,9 @@ init_audio(const char* audio_server)
     params.isStereo = false;
     // NOTE: The callback function is called once by the initialization of
     // the Audio driver.
-    Audio::Initialize(audio_server, params, callback);
+    err = Audio::Initialize(audio_server, params, callback);
 
-    return ERR_NONE;
+    return err;
 }
 
 static void

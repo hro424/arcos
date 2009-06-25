@@ -41,6 +41,7 @@
 #include <MemoryAllocator.h>
 #include <String.h>
 #include <Types.h>
+#include <Random.h>
 
 #include "IpcHandler.h"
 #include "Loader.h"
@@ -130,6 +131,9 @@ main(int argc, char* argv[])
     if (argc < 1) {
         return ERR_INVALID_ARGUMENTS;
     }
+
+    ReadTSC(&hi, &lo);
+    srand(lo);
 
     if (strncmp(argv[0], "fexec", 6) == 0) {
         if (argc < 4) {

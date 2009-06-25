@@ -51,16 +51,13 @@ private:
     int             _max;
 
 public:
-    Semaphore(size_t n);
+    Semaphore(size_t n) : _max(n) {};
 
     void Up();
     void Down();
 };
 
-Semaphore::Semaphore(size_t n) : _max(n) {
-}
-
-void
+inline void
 Semaphore::Up()
 {
 begin:
@@ -78,7 +75,7 @@ begin:
     _mutex.Unlock();
 }
 
-void
+inline void
 Semaphore::Down()
 {
 begin:

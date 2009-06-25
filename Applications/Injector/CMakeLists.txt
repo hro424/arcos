@@ -33,14 +33,5 @@
 
 #$Id: CMakeLists.txt 349 2008-05-29 01:54:02Z hro $
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/Include)
-
-FILE(GLOB SRCS *.cc)
-SET(TEXT_PHYS 0x00500000)
-SET(PROG injector)
-LIST(APPEND LIB_LIST arc arc-user arc posix c_arc l4)
-ADD_DEFINITIONS(-DSYS_DEBUG)
-#ADD_DEFINITIONS(-DSYS_DEBUG_CALL)
-
-INCLUDE(${CMAKE_SOURCE_DIR}/Tools/CMake/ArcServer.cmake)
-
+set(MODULE_NAME injector)
+include(${CMAKE_SOURCE_DIR}/Tools/CMake/Application.cmake)

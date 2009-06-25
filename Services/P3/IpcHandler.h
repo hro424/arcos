@@ -67,6 +67,7 @@ protected:
     stat_t HandleMapLFB(L4_ThreadId_t tid, L4_Msg_t *msg);
     stat_t HandleGetNs(L4_Msg_t *msg);
     stat_t HandleExit(L4_Msg_t *msg);
+    stat_t HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg);
 
     stat_t RecoverCheckpoint(L4_ThreadId_t tid, L4_Word_t gen);
     stat_t RecoverLazy();

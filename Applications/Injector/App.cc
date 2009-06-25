@@ -36,36 +36,40 @@
 
 //$Id: App.cc 349 2008-05-29 01:54:02Z hro $
 
-#include <arc/ipc.h>
-#include <arc/nameservice.h>
-#include <arc/status.h>
-#include <l4/types.h>
+#include <Ipc.h>
+#include <FaultInjection.h>
+#include <NameService.h>
+#include <System.h>
 
-#define TARGET      "parallel"
 #define MS(T)       (T * 1000)
 #define S(T)        (T * 1000000)
 
 int
-main()
+main(int argc, char* argv[])
 {
     L4_ThreadId_t   target;
     L4_Msg_t        msg;
-    status_t        err;
+    stat_t          err;
+
+    if (argc < 2) {
+        return 1;
+    }
 
     // Get the target ID
-    err = NameService::Get(TARGET, &target);
+    err = NameService::Get(argv[1], &target);
 
     L4_Word_t reg[2];
     reg[0] = target.raw;
-    reg[1] = 0;
+    reg[1] = FI_TEXT_AREA;
 
-    for (;;) {
+    System.Print("%.8lX starts fault injection.\n", L4_Myself().raw);
+    for (int i = 0; i < 10; i++) {
         // Sleep
-        L4_Sleep(L4_TimePeriod(S(1UL)));
+        L4_Sleep(L4_TimePeriod(MS(500UL)));
 
         // Send restart request
-        L4_Put(&msg, MSG_ROOT_RESTART, 2, reg, 0, 0);
-        IpcCall(L4_Pager(), &msg, &msg);
+        L4_Put(&msg, MSG_ROOT_INJECT, 2, reg, 0, 0);
+        Ipc::Call(L4_Pager(), &msg, &msg);
     }
 
     return 0;

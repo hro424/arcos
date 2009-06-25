@@ -44,8 +44,7 @@
 #include <Types.h>
 #include <Stream.h>
 #include <Session.h>
-
-class LineBuffer;
+#include <LineBuffer.h>
 
 class ConsoleReader : public Thread<>
 {
@@ -56,10 +55,12 @@ private:
     volatile Bool   _running;
 
 public:
-    ConsoleReader(LineBuffer& buf);
+    ConsoleReader(LineBuffer& buf) : _buffer(buf), _running(FALSE) {}
+
     virtual ~ConsoleReader();
+
     virtual void Run();
-    Bool IsActive();
+    Bool IsActive() { return _running; }
 };
 
 
@@ -101,7 +102,11 @@ public:
     ///
     /// Flush the current buffer then, destroys the shared memory.
     ///
-    virtual ~ConsoleWriter();
+    ~ConsoleWriter()
+    {
+        Flush();
+        delete _session;
+    }
 
     ///
     /// Writes the data to the buffer.  Makes a transfer if the buffer
@@ -134,13 +139,34 @@ public:
     static const char*      INPUT_SERVER;
     static const char*      OUTPUT_SERVER;
 
+    Console() {}
+
+    virtual ~Console() {}
+
     ///
     /// Initializes the Console object.
+    /// Must finish before 'main'
     ///
     /// @param bufsize      the buffer size of the input
     ///
-    void Initialize(size_t bufsize);
-    void Stop();
+    void Initialize(size_t bufsize)
+    {
+        _input_buffer = new LineBuffer(bufsize);
+
+        // Create the reader and the writer threads
+        _reader = new ConsoleReader(*_input_buffer);
+        _writer = new ConsoleWriter();
+
+        _reader->Start();
+    }
+
+
+    void Stop()
+    {
+        delete _writer;
+        delete _reader;
+        delete _input_buffer;
+    }
 
     void Lock() {}
     void Unlock() {}
@@ -148,7 +174,10 @@ public:
     ///
     /// Reads a single character from the console.
     ///
-    Int Read();
+    Int Read()
+    {
+        return Get();
+    }
 
     ///
     /// Reads user input.
@@ -157,12 +186,25 @@ public:
     /// @param len          the length of the buffer
     /// @param rlen         the length of input characters
     ///
-    stat_t Read(void* buf, size_t len, size_t* rlen = 0);
+    stat_t Read(void* buf, size_t len, size_t* rlen = 0)
+    {
+        ScopedLock  lock(&_read_lock);
+        size_t      size;
+
+        size = _input_buffer->Read(static_cast<char*>(buf), len);
+        if (rlen != 0) {
+            *rlen = size;
+        }
+        return ERR_NONE;
+    }
 
     ///
     /// Writes a single character to the console.
     ///
-    void Write(Int c);
+    void Write(Int c)
+    {
+        Put(c);
+    }
 
     ///
     /// Writes data to the console.
@@ -171,17 +213,39 @@ public:
     /// @param len          the length of the buffer
     /// @param wlen         the length of actual written data
     ///
-    stat_t Write(const void* buf, size_t len, size_t* wlen = 0);
+    stat_t Write(const void* buf, size_t len, size_t* wlen = 0)
+    {
+        ScopedLock  lock(&_write_lock);
+        return _writer->Write(static_cast<const char*>(buf), len, wlen);
+    }
 
-    void Flush();
+    void Flush()
+    {
+        ScopedLock lock(&_write_lock);
+        _writer->Flush();
+    }
 
-    char* ReadLine();
+    char* ReadLine()
+    {
+        _input_buffer->Wait();
+        return _input_buffer->ReadLine();
+    }
 
     void WriteLine(const char* str);
 
-    void Put(char c);
+    void Put(char c)
+    {
+        ScopedLock lock(&_write_lock);
+        _writer->Write(&c, 1, 0);
+    }
 
-    char Get();
+    char Get()
+    {
+        char c;
+        ScopedLock lock(&_read_lock);
+        _input_buffer->Read(&c, 1);
+        return c;
+    }
 };
 
 #endif // ARC_MICRO_SHELL_CONSOLE_H

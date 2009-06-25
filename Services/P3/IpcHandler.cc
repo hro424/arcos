@@ -44,6 +44,8 @@
 #include <System.h>
 #include <Types.h>
 #include <l4/types.h>
+#include <FaultInjection.h>
+#include <Random.h>
 
 #include "IpcHandler.h"
 #include "Pel.h"
@@ -100,8 +102,16 @@ begin:
             case MSG_PEL_READY:
                 _task->user_state = Task::USER_READY;
                 goto begin;
+            case MSG_PEL_INJECT:
+                err = HandleInject(tid, &msg);
+                goto begin;
+                break;
+
             case MSG_PAGER_PF:
                 err = HandlePageFault(tid, &msg);
+                if (err == ERR_FATAL) {
+                    goto exit;
+                }
                 break;
             case MSG_PAGER_ALLOCATE:
                 err = HandleAllocate(&msg);
@@ -138,7 +148,10 @@ begin:
             case MSG_ROOT_SET_INT:
             case MSG_ROOT_UNSET_INT:
             case MSG_ROOT_EXEC:
+            case MSG_ROOT_KILL:
+            case MSG_ROOT_DEL_TSK:
             case MSG_ROOT_RESTART:
+            case MSG_ROOT_INJECT:
                 err = Ipc::Call(Pel::RootTask(), &msg, &msg);
                 break;
             case MSG_ROOT_NS:
@@ -157,12 +170,6 @@ begin:
                 L4_Clear(&msg);
                 L4_KDB_Enter("debug");
                 break;
-        }
-
-        if (err != ERR_NONE) {
-            DOUT("Error: %s, label: %.8lX\n", stat2msg[err], label);
-            BREAK();
-            break;
         }
 
         L4_Load(&msg);
@@ -212,6 +219,7 @@ IpcHandler::HandleCancel(L4_Msg_t* msg)
 
     L4_ExchangeRegisters(tid, control, 0, 0, 0, 0, L4_nilthread,
                          &dummy, &dummy, &dummy, &dummy, &dummy, &dummy_tid);
+    L4_ThreadSwitch(tid);
     EXIT;
     return Ipc::ReturnError(msg, ERR_NONE);
 }
@@ -332,7 +340,7 @@ IpcHandler::Recover()
     RecoverLazy();
     RecoverURB();
     */
-    return ERR_NONE;
+    return ERR_FATAL;
 }
 
 stat_t
@@ -375,7 +383,7 @@ IpcHandler::HandlePageFault(L4_ThreadId_t tid, L4_Msg_t *msg)
     else {
         System.Print("Invalid address\n");
         System.Print("PF @ %.8lX, ip %.8lX, rwx %lu\n", faddr, fip, rwx);
-        Recover();
+        stat = Recover();
     }
 
     EXIT;
@@ -658,6 +666,39 @@ IpcHandler::HandleExit(L4_Msg_t *msg)
     _exit_code = L4_Get(msg, 0);
     DOUT("User exit code: %u\n", _exit_code);
     EXIT;
+    return ERR_NONE;
+}
+
+stat_t
+IpcHandler::HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg)
+{
+    L4_Word_t   where;
+    L4_Word_t   old;
+    L4_Word_t*  cur;
+    addr_t      start_addr;
+    addr_t      end_addr;
+    Segment*    seg;
+
+    where = L4_Get(msg, 0);
+
+    if (where == FI_TEXT_AREA) {
+        seg = &_task->text;
+    }
+    else if (where == FI_DATA_AREA) {
+        seg = &_task->data;
+    }
+
+    start_addr = seg->StartAddress();
+    end_addr = seg->EndAddress();
+
+    // Flip the data
+    cur = (L4_Word_t*)(rand() % (end_addr - start_addr) + start_addr);
+    old = *cur;
+    *cur &= *cur >> 1;
+
+    System.Print("FI->%.8lX@%p %.8lX->%.8lX\n",
+                 _task->main_tid.raw, cur, old, *cur);
+
     return ERR_NONE;
 }
 

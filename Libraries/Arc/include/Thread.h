@@ -121,35 +121,84 @@ protected:
     ///
     Mutex               _join_lock;
 
-    L4_ThreadId_t       _destoractor;
+    L4_ThreadId_t       _destructor;
 
     ///
     /// The default entry point
     ///
     static void BootStrap(Thread<STACK_SIZE> *th);
 
-    void SetState(UByte s);
+    void SetState(UByte s) {
+        _state_lock.Lock();
+        _state = s;
+        _state_lock.Unlock();
+    }
 
-    UByte GetState();
+
+    UByte GetState() {
+        UByte s;
+        _state_lock.Lock();
+        s = _state;
+        _state_lock.Unlock();
+        return s;
+    }
+
 
     ///
     /// Adds a joining thread
     ///
-    void AddListener(L4_ThreadId_t tid);
+    void AddListener(L4_ThreadId_t tid) {
+        _join_lock.Lock();
+        _listeners.Add(tid);
+        _join_lock.Unlock();
+    }
+
 
     ///
     /// Removes a joining thread
     ///
-    void DelListener(L4_ThreadId_t tid);
+    void DelListener(L4_ThreadId_t tid) {
+        _join_lock.Lock();
+        _listeners.Remove(tid);
+        _join_lock.Unlock();
+    }
+
 
 public:
     Thread(size_t stack_size);
-    virtual ~Thread();
+
+    virtual ~Thread()
+    {
+        L4_Msg_t    msg;
+        L4_Word_t   reg[2];
+        stat_t      err;
+
+        _state_lock.Lock();
+        if (_state != TERMINATED) {
+            _destructor = L4_Myself();
+            _state_lock.Unlock();
+            L4_Receive(_tid);
+        }
+        else {
+            _state_lock.Unlock();
+        }
+
+        reg[0] = _tid.raw;
+        reg[1] = L4_Myself().raw;
+        L4_Put(&msg, MSG_ROOT_DEL_TH, 2, reg, 0, 0);
+        err = Ipc::Call(L4_Pager(), &msg, &msg);
+        if (err != ERR_NONE) {
+            System.Print(System.ERROR, "thread deletion failed\n");
+            return;
+        }
+    }
+
 
     ///
     /// Obtains the L4 thread ID of the thread
     ///
-    L4_ThreadId_t Id() const;
+    L4_ThreadId_t Id() const { return _tid; }
+
 
     ///
     /// Defines the behavior of the thread
@@ -170,21 +219,31 @@ public:
     ///
     /// Cancels current IPC
     ///
-    stat_t Cancel();
+    stat_t Cancel() {
+        L4_Msg_t    msg;
+        stat_t      err;
 
-    Bool IsRunning() const;
+        L4_Put(&msg, MSG_PEL_CANCEL, 1, &_tid.raw, 0, 0);
+        err = Ipc::Call(L4_Pager(), &msg, &msg);
+        if (err != ERR_NONE) {
+            return err;
+        }
+        return ERR_NONE;
+    }
 
-    UInt GetPriority() const;
+
+    Bool IsRunning() const { return _state == RUNNING; }
+
+    UInt GetPriority() const { return _priority; }
+
     stat_t SetPriority(UInt prio);
 };
 
 
 
-
-
 template <size_t STACK_SIZE>
 Thread<STACK_SIZE>::Thread(size_t stack_size = STACK_SIZE)
-    : _priority(DEFAULT_PRIORITY), _state(READY), _destoractor(L4_nilthread)
+    : _priority(DEFAULT_PRIORITY), _state(READY), _destructor(L4_nilthread)
 {
     UInt        count;
     L4_Msg_t    msg;
@@ -210,78 +269,6 @@ Thread<STACK_SIZE>::Thread(size_t stack_size = STACK_SIZE)
 }
 
 template <size_t STACK_SIZE>
-Thread<STACK_SIZE>::~Thread()
-{
-    L4_Msg_t    msg;
-    L4_Word_t   reg[2];
-    stat_t      err;
-
-    _state_lock.Lock();
-    if (_state != TERMINATED) {
-        _destoractor = L4_Myself();
-        _state_lock.Unlock();
-        L4_Receive(_tid);
-    }
-    else {
-        _state_lock.Unlock();
-    }
-
-    reg[0] = _tid.raw;
-    reg[1] = L4_Myself().raw;
-    L4_Put(&msg, MSG_ROOT_DEL_TH, 2, reg, 0, 0);
-    err = Ipc::Call(L4_Pager(), &msg, &msg);
-    if (err != ERR_NONE) {
-        System.Print(System.ERROR, "thread deletion failed\n");
-        return;
-    }
-}
-
-template <size_t STACK_SIZE>
-L4_ThreadId_t
-Thread<STACK_SIZE>::Id() const
-{
-    return _tid;
-}
-
-template <size_t STACK_SIZE>
-void
-Thread<STACK_SIZE>::SetState(UByte s)
-{
-    _state_lock.Lock();
-    _state = s;
-    _state_lock.Unlock();
-}
-
-template <size_t STACK_SIZE>
-UByte
-Thread<STACK_SIZE>::GetState()
-{
-    UByte s;
-    _state_lock.Lock();
-    s = _state;
-    _state_lock.Unlock();
-    return s;
-}
-
-template <size_t STACK_SIZE>
-void
-Thread<STACK_SIZE>::AddListener(L4_ThreadId_t tid)
-{
-    _join_lock.Lock();
-    _listeners.Add(tid);
-    _join_lock.Unlock();
-}
-
-template <size_t STACK_SIZE>
-void
-Thread<STACK_SIZE>::DelListener(L4_ThreadId_t tid)
-{
-    _join_lock.Lock();
-    _listeners.Remove(tid);
-    _join_lock.Unlock();
-}
-
-template <size_t STACK_SIZE>
 void
 Thread<STACK_SIZE>::BootStrap(Thread<STACK_SIZE> *th)
 {
@@ -296,8 +283,8 @@ Thread<STACK_SIZE>::BootStrap(Thread<STACK_SIZE> *th)
         th->DelListener(tid);
     }
     th->SetState(TERMINATED);
-    if (!L4_IsNilThread(th->_destoractor)) {
-        L4_Send(th->_destoractor);
+    if (!L4_IsNilThread(th->_destructor)) {
+        L4_Send(th->_destructor);
     }
     L4_Sleep(L4_Never);
 }
@@ -325,22 +312,8 @@ Thread<STACK_SIZE>::Start()
     }
 
     SetState(RUNNING);
+    L4_ThreadSwitch(_tid);
 
-    return ERR_NONE;
-}
-
-template <size_t STACK_SIZE>
-stat_t
-Thread<STACK_SIZE>::Cancel()
-{
-    L4_Msg_t    msg;
-    stat_t      err;
-
-    L4_Put(&msg, MSG_PEL_CANCEL, 1, &_tid.raw, 0, 0);
-    err = Ipc::Call(L4_Pager(), &msg, &msg);
-    if (err != ERR_NONE) {
-        return err;
-    }
     return ERR_NONE;
 }
 
@@ -357,20 +330,6 @@ Thread<STACK_SIZE>::Join()
     else {
         _state_lock.Unlock();
     }
-}
-
-template <size_t STACK_SIZE>
-Bool
-Thread<STACK_SIZE>::IsRunning() const
-{
-    return _state == RUNNING;
-}
-
-template <size_t STACK_SIZE>
-UInt
-Thread<STACK_SIZE>::GetPriority() const
-{
-    return _priority;
 }
 
 template <size_t STACK_SIZE>

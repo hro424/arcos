@@ -87,7 +87,8 @@ KeyAcceptor::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg)
     Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
 
     data = inb(0x60);
-    DOUT("keycode: %lu (0x%.lX)\n", data, data);
+    DOUT("keycode: %lu (0x%.lX) -> %u listeners\n",
+         data, data, _listeners.Length());
     L4_Put(&event, MSG_EVENT_NOTIFY, 1, &data, 0, 0);
     while (it.HasNext()) {
         L4_ThreadId_t th = it.Next();

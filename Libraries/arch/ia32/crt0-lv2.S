@@ -35,8 +35,8 @@
 
 //$Id: /local/arc/Libraries/arch/ia32/crt0-lv1.S 619 2008-05-28T05:39:34.595005Z hro  $
 
-	.text
-	.global _start
+        .text
+        .global _start
 
 _start:
 0:
@@ -44,6 +44,7 @@ _start:
         call    _init
         call    _Z14__init_consolev
         popl    %eax
-	call	main
+        call	main
         pushl   %eax
         call    _Z6__exiti
+

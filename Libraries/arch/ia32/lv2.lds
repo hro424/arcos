@@ -11,11 +11,13 @@
  *  $Id: lv2.lds 374 2008-08-07 05:48:21Z hro $
  */
 
+OUTPUT_FORMAT("elf32-i386", "elf32-i386", "elf32-i386")
+OUTPUT_ARCH(i386)
+
 ENTRY(_start)
 
 PHDRS
 {
-    init PT_LOAD FLAGS (5) ;
     text PT_LOAD FLAGS (5) ;
     data PT_LOAD ;
     pdata PT_LOAD ;
@@ -25,7 +27,7 @@ SECTIONS
 {
     . = 0x20000000;
 
-    .init   : { *(.init) } : init
+    .init   : { *(.init) } : text
 
     .text   : { *(.text) } : text
 

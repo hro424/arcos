@@ -33,7 +33,7 @@
 #$Id: CMakeLists.txt 401 2008-09-04 08:31:45Z hro $
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/Audio/include)
-set(MODULE_NAME wavplayer)
+set(MODULE_NAME wp)
 list(APPEND LIBS audio0)
 add_definitions(-DSYS_DEBUG)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Application.cmake)

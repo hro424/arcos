@@ -89,6 +89,7 @@
 // (containing BIOS area)
 #define MSG_PAGER_MAPBIOSPAGE           MSG_PAGER_PROTO(-19UL)
 
+
 //
 //  Root Task
 //
@@ -107,6 +108,8 @@
 #define MSG_ROOT_RESTART            0x00D0
 #define MSG_ROOT_SNAPSHOT           0x00E0
 #define MSG_ROOT_RESTORE            0x00F0
+#define MSG_ROOT_KILL               0x0100
+#define MSG_ROOT_INJECT             0x0200
 
 //
 //  Shadow Task
@@ -126,6 +129,7 @@
 #define MSG_PEL_START_TH            0x2200
 #define MSG_PEL_CANCEL              0x2210
 #define MSG_PEL_READY               0x2220
+#define MSG_PEL_INJECT              0x2230
 
 //
 //  Naming Service
