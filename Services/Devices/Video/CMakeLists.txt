@@ -33,4 +33,4 @@
 
 #$Id: CMakeLists.txt 349 2008-05-29 01:54:02Z hro $
 
-#add_subdirectory(Vesa)
+add_subdirectory(Vesa)

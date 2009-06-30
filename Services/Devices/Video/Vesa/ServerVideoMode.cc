@@ -34,12 +34,12 @@
 ///
 /// Video mode definition.
 
-#include <sys/Config.h>
+#include <arc/console.h>
+#include <arc/system.h>
 #include "ServerVideoMode.h"
 #include "ModeInfoBlock.h"
 
-void
-ServerVideoMode::Initialize(UShort nb, const ModeInfoBlock* const info)
+void ServerVideoMode::init(UShort nb, const ModeInfoBlock *info)
 {
     Number = nb;
     Xres = info->XResolution;
@@ -48,49 +48,35 @@ ServerVideoMode::Initialize(UShort nb, const ModeInfoBlock* const info)
     RedMaskSize = info->RedMaskSize;
     RedFieldPos = info->RedFieldPosition;
     GreenMaskSize = info->GreenMaskSize;
-    GreenFieldPos = info->GreenFieldPosition;
-    BlueMaskSize = info->BlueMaskSize;
+    GreenMaskSize = info->GreenMaskSize;
+    BlueFieldPos = info->BlueFieldPosition;
     BlueFieldPos = info->BlueFieldPosition;
     NumberOfPages = info->NumberOfImagePages + 1;
     LFBAddress = info->PhysBasePtr;
     
     switch (info->BitsPerPixel) {
-        case 15:
-            Bytespp = 2;
-            break;
-        default:
-            Bytespp = info->BitsPerPixel / 8;
-            break;
+    case 15:
+        Bytespp = 2;
+        break;
+    default:
+        Bytespp = info->BitsPerPixel / 8;
+        break;
     }
-
     RedMask = 0;
-    for (int i = 0; i < RedMaskSize; i++) {
-        RedMask |= (1 << RedFieldPos + i);
-    }
-
+    for (int i = 0; i < RedMaskSize; i++) RedMask |= (1 << RedFieldPos + i);
     RedLoss = 0xff >> (8 - RedMaskSize) << (8 - RedMaskSize);
     GreenMask = 0;
-    for (int i = 0; i < GreenMaskSize; i++) {
-        GreenMask |= (1 << GreenFieldPos + i);
-    }
-
+    for (int i = 0; i < GreenMaskSize; i++) GreenMask |= (1 << GreenFieldPos + i);
     GreenLoss = 0xff >> (8 - GreenMaskSize) << (8 - GreenMaskSize);
     BlueMask = 0;
-    for (int i = 0; i < BlueMaskSize; i++) {
-        BlueMask |= (1 << BlueFieldPos + i);
-    }
+    for (int i = 0; i < BlueMaskSize; i++) BlueMask |= (1 << BlueFieldPos + i);
     BlueLoss = 0xff >> (8 - BlueMaskSize) << (8 - BlueMaskSize);
 }
 
-UInt
-ServerVideoMode::LFBSize() const
-{
+UInt ServerVideoMode::LFBSize() const {
     return xres() * yres() * bytespp() * numberOfPages();
 }
 
-UInt
-ServerVideoMode::LFBNbPages() const
-{
+UInt ServerVideoMode::LFBNbPages() const {
     return (LFBSize() + PAGE_SIZE - 1) / PAGE_SIZE;
 }
-

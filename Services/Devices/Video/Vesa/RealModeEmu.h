@@ -34,12 +34,10 @@
 ///
 /// Contains the data needed to real-mode emulation for the VESA driver.
 
-//$Id: RealModeEmu.h 349 2008-05-29 01:54:02Z hro $
-
 #ifndef REALMODEEMU_H_
 #define REALMODEEMU_H_
 
-#include <x86emu.h>
+#include "x86emu.h"
 
 /**
  * Pointer to the real-mode emulated memory.
@@ -51,19 +49,18 @@ extern char *emu_main_mem;
  */
 #define VESA_VBE_FUNCTION_SUPPORTED(X) ((X & 0xff) == 0x4f)
 #define VESA_VBE_FUNCTION_SUCCESSFUL(X) (((X & 0xff00) >> 8) == 0)
-#define VESA_VBE_SUCCESS(X)                 \
-    (VESA_VBE_FUNCTION_SUPPORTED(X) && VESA_VBE_FUNCTION_SUCCESSFUL(X))
+#define VESA_VBE_SUCCESS(X) (VESA_VBE_FUNCTION_SUPPORTED(X) && VESA_VBE_FUNCTION_SUCCESSFUL(X))
 
 /**
  * Initializes the x86 real-mode emulation layer. Must be called before
  * anything!
  */
-stat_t realModeEmu_init();
+status_t realModeEmu_init();
 
 /**
  * Cleanup the x86 real-mode emulation layer.
  */
-stat_t realModeEmu_cleanup();
+status_t realModeEmu_cleanup();
 
 /**
  * Invoke interrupt 0x10. Intput and output are handled
@@ -72,4 +69,3 @@ stat_t realModeEmu_cleanup();
 void invokeInt10();
 
 #endif /*REALMODEEMU_H_*/
-

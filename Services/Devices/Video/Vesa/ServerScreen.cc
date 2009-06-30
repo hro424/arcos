@@ -28,22 +28,17 @@
  */
 
 ///
-/// @brief  Defines the VbeInfoBlock VESA VBE 2.0 structure.
 /// @file   Services/Devices/Vesa/VbeInfoBlock.cc
 /// @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
 /// @since  2008
 ///
+/// Defines the VbeInfoBlock VESA VBE 2.0 structure.
 
-//$Id: ServerScreen.cc 349 2008-05-29 01:54:02Z hro $
-
-#include <Debug.h>
-#include <Ipc.h>
-#include <MemoryManager.h>
-#include <PageAllocator.h>
-#include <String.h>
-#include <System.h>
-#include <Types.h>
-#include <x86emu.h>
+#include <arc/console.h>
+#include <arc/system.h>
+#include <arc/status.h>
+#include <arc/memory.h>
+#include <arc/ipc.h>
 
 #include "ServerScreen.h"
 #include "ServerVideoMode.h"
@@ -51,16 +46,26 @@
 #include "VbeInfoBlock.h"
 #include "RealModeEmu.h"
 
+#include <l4/kip.h>
+
+//UShort Screen::Version;
+//UInt Screen::TotalMemory;
+//UByte *const Screen::fb = (UByte *)VBE_LFB_ADDRESS;
+//UByte Screen::bytespp = 0;
+//UShort Screen::xres = 0;
+
+//const VideoMode *Screen::supportedModes[MAX_SUPPORTED_MODES + 1];
+//const VideoMode *Screen::currentMode = 0;
+
 static const struct ModeInfoBlock *const
-queryVideoMode(UShort number)
-{
+queryVideoMode(UShort number) {
     X86EMU_SETREG(AX, 0x4f01);
     X86EMU_SETREG(CX, number);
     X86EMU_SETREG(ES, X86EMU_DATA_AREA_OFFSET >> 4);
     X86EMU_SETREG(DI, sizeof(struct VbeInfoBlock));
     invokeInt10();
     if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
-        System.Print(System.ERROR, "vesa: Cannot query mode %x!\n", number);
+        ConsoleOut(ERROR, "vesa: Cannot query mode %x!\n", number);
         return 0;
     }
     const struct ModeInfoBlock *const modeInfo = 
@@ -69,16 +74,10 @@ queryVideoMode(UShort number)
     return modeInfo;
 }
 
-stat_t
-ServerScreen::Initialize()
-{
-    ServerVideoMode*      mode;
-    stat_t  err;
-   
-    err = realModeEmu_init();
+status_t ServerScreen::init() {
+    status_t err = realModeEmu_init();
     if (err != ERR_NONE) {
-        System.Print(System.ERROR,
-                     "vesa: Cannot initialize x86 emulation layer!\n");
+        ConsoleOut(ERROR, "vesa: Cannot initialize x86 emulation layer!\n");
         return ERR_NOT_FOUND;
     }
     
@@ -88,77 +87,79 @@ ServerScreen::Initialize()
     X86EMU_SETREG(DI, 0);
     invokeInt10();
     if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
-        System.Print(System.ERROR, "vesa: Cannot query VBE capabilities!\n");
+        ConsoleOut(ERROR, "vesa: Cannot query VBE capabilities!\n");
         return ERR_NOT_FOUND;
     }
     
-    // Get the VBE information block (read only)
-    const VbeInfoBlock* const info =
-        reinterpret_cast<const struct VbeInfoBlock* const>(
-                                    emu_main_mem + X86EMU_DATA_AREA_OFFSET);
+    // Get the Vbe Info Block
+    const struct VbeInfoBlock *const infoBlock = 
+        (const struct VbeInfoBlock *const) (emu_main_mem + X86EMU_DATA_AREA_OFFSET);
     
-    if (memcmp(info->VbeSignature, "VESA", 4) &&
-        memcmp(info->VbeSignature, "VBE2", 4)) {
-        System.Print(System.ERROR,
-                     "vesa: Vesa compatible board not detected!\n");
+    if (memcmp(infoBlock->VbeSignature, "VESA", 4) &&
+            memcmp(infoBlock->VbeSignature, "VBE2", 4)) {
+        ConsoleOut(ERROR, "vesa: Vesa compatible board not detected!\n");
         return ERR_NOT_FOUND;
     }
     
-    _version = info->VbeVersion;
-    _total_memory = info->TotalMemory;
+    Version = infoBlock->VbeVersion;
+    TotalMemory = infoBlock->TotalMemory;
     
-    // Also create the list of supported video modes - be careful not to
-    // overflow our target
-    mode = const_cast<ServerVideoMode*>(
-                reinterpret_cast<const ServerVideoMode*>(GetSupportedModes()));
-    _num_modes = 0;
-    for (const UShort* ptr = reinterpret_cast<const UShort*>(
-                            emu_main_mem + info->VideoModePtr.address());
-         *ptr != 0xffff;
-         ptr++) {
-        const ModeInfoBlock* const block = queryVideoMode(*ptr);
+    // Also create the list of supported video modes - be careful not to overflow 
+    // our target
+    UInt modeIndex = 0;
+    NbSupportedModes = 0;
+    const VideoMode *supportedModes = getSupportedModes();
+    for (const UShort *videoModes = (const UShort *)(emu_main_mem + 
+            infoBlock->VideoModePtr.address()); 
+         *videoModes != 0xffff; videoModes++) {
+        const struct ModeInfoBlock *const block = queryVideoMode(*videoModes);
         // Cannot query mode?
-        if (!block) {
-            continue;
-        }
+        if (!block) continue;
         // No hardware support?
-        if (!(block->ModeAttributes & VIDEO_MODE_SUPPORTED)) {
-            continue;
-        }
+        if (!(block->ModeAttributes & VIDEO_MODE_SUPPORTED)) continue;
         // Text mode?
-        if (!(block->ModeAttributes & VIDEO_MODE_GRAPHIC)) {
-            continue;
-        }
+        if (!(block->ModeAttributes & VIDEO_MODE_GRAPHIC)) continue;
         // No LFB support?
-        if (!(block->ModeAttributes & VIDEO_MODE_SUPPORTS_LFB)) {
-            continue;
-        }
-
-        mode[_num_modes].Initialize(*ptr, block);
-        _num_modes++;
+        if (!(block->ModeAttributes & VIDEO_MODE_SUPPORTS_LFB)) continue;
+        ((ServerVideoMode *)supportedModes)[modeIndex].init(*videoModes, block);
+        modeIndex++; NbSupportedModes++;
     }
     
-    _current_mode = -1;
+    currentModeIndex = -1;
     return ERR_NONE;
 }
 
-stat_t
-ServerScreen::CleanUp()
-{
+status_t ServerScreen::cleanup() {
     return realModeEmu_cleanup();
 }
 
-stat_t
-ServerScreen::SetVideoMode(UInt index)
+/*
+ * TODO should be turned into an I/O pager or something.
+ */
+static status_t
+MapLFBPage(L4_Word_t physaddress, L4_Word_t spaceaddress)
 {
-    ENTER;
+    L4_KernelInterfacePage_t *kip;
+    kip = (L4_KernelInterfacePage_t *)L4_GetKernelInterface();
+    L4_ThreadId_t s0id = L4_GlobalId(L4_ThreadIdUserBase(kip), 1);
+    L4_Msg_t msg;
+    L4_Word_t reg[2];
+    L4_Fpage_t page = L4_FpageLog2(physaddress, PAGE_BITS);
+    L4_Fpage_t acceptedpage = L4_FpageLog2((L4_Word_t)spaceaddress, PAGE_BITS);
+    reg[0] = page.raw;
+    reg[1] = 0;
+    L4_Put(&msg, MSG_SIGMA0, 2, reg, 0, 0);
+    
+    L4_Accept(L4_MapGrantItems(acceptedpage));
+    status_t err = IpcCall(s0id, &msg, &msg);
+    L4_Accept(L4_MapGrantItems(L4_Nilpage));
+    
+    return err;
+}
 
-    stat_t      err;
-    L4_Word_t   fb_base;
-    UInt        num_pages;
-    const ServerVideoMode& mode =
-        ((const ServerVideoMode *)GetSupportedModes())[index];
-
+status_t
+ServerScreen::setVideoMode(const UInt index) {
+    const ServerVideoMode & mode = ((const ServerVideoMode *)getSupportedModes())[index];
     // Set the video mode using BIOS functions
     X86EMU_SETREG(AX, 0x4f02);
     X86EMU_SETREG(BX, mode.number() | VIDEO_MODE_USE_LFB);
@@ -166,29 +167,20 @@ ServerScreen::SetVideoMode(UInt index)
     if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
         return ERR_UNKNOWN;
     }
-
     // Now map the frame buffer to our address space
-    // We have to map the pages one by one - so let's first calculate how many
-    // pages to map.
-    fb_base = mode.lfbPhysicalAddress();
-    num_pages = mode.LFBNbPages();
-    _server_base = reinterpret_cast<UByte*>(palloc_shm(num_pages, L4_anythread,
-                                                       L4_ReadWriteOnly));
-    for (UInt i = 0; i < num_pages; i++) {
-        err = Pager.Map(reinterpret_cast<addr_t>(_server_base) +
-                            (PAGE_SIZE * i),
-                        fb_base + (PAGE_SIZE * i), L4_nilthread, 1,
-                        L4_FullyAccessible);
-        if (err != ERR_NONE) {
-            return err;
-        }
+    // We have to map the pages one by one - so let's first calculate how many pages
+    // to map.
+    L4_Word_t lfbPhysAddress = mode.lfbPhysicalAddress();
+    UInt nbPages = mode.LFBNbPages();
+    for (UInt i = 0; i < nbPages; i++) {
+        status_t err = MapLFBPage(lfbPhysAddress + (PAGE_SIZE * i), 
+                VBE_LFB_ADDRESS + (PAGE_SIZE * i));
+        if (err != ERR_NONE) return err;
     }
     
-    _current_mode = index;
-    _bpp = GetCurrentMode()->bytespp();
-    _xres = GetCurrentMode()->xres();
+    currentModeIndex = index;
+    bytespp = getCurrentMode()->bytespp();
+    xres = getCurrentMode()->xres();
     
-    EXIT;
     return ERR_NONE;
 }
-

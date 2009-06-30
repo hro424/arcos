@@ -35,7 +35,7 @@
 #ifndef VBEINFOBLOCK_H_
 #define VBEINFOBLOCK_H_
 
-#include <Types.h>
+#include <arc/types.h>
 #include "RealModeAddress.h"
 
 /**

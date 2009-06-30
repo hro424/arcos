@@ -34,12 +34,10 @@
 ///
 /// Defines a real-mode SEGMENT:OFFSET address model.
 
-//$Id: RealModeAddress.h 349 2008-05-29 01:54:02Z hro $
+#ifndef REALMODEADDRESS_H_
+#define REALMODEADDRESS_H_
 
-#ifndef VESA_REAL_MODE_ADDRESS_H_
-#define VESA_REAL_MODE_ADDRESS_H_
-
-#include <Types.h>
+#include <arc/types.h>
 
 class RealModeAddress {
     UShort  _offset;
@@ -50,5 +48,4 @@ public:
     const UInt address() const { return (_segment << 4) + _offset; }
 } __attribute__((packed));
 
-#endif /* VESA_REAL_MODE_ADDRESS_H_*/
-
+#endif /*REALMODEADDRESS_H_*/

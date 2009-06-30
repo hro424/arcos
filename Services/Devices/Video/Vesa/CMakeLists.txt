@@ -27,26 +27,21 @@
 
 ##
 ##  @file   Services/Devices/Vesa/CMakeLists.txt
+##  @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
 ##  @date   2008
 ##
 
-#$Id: CMakeLists.txt 349 2008-05-29 01:54:02Z hro $
+#$Id: $
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}/Libraries/L4/include
-    ${CMAKE_SOURCE_DIR}/Libraries/System/include
-    ${CMAKE_SOURCE_DIR}/Libraries/Arc/include
-    ${CMAKE_SOURCE_DIR}/Libraries/X86Emu/include
-    ${CMAKE_SOURCE_DIR}/Libraries/Vesa/include
-    ${CMAKE_SOURCE_DIR}/Libraries/Driver/include
-    ${CMAKE_SOURCE_DIR}/Libraries/C/include)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/Include)
 
-set(MODULE_NAME vesa)
-list(APPEND LIBS x86emucore c x86emu)
+FILE(GLOB SRCS *.cc)
+SET(TEXT_PHYS 0x600000)
+SET(PROG vesa)
+#NOTE: arc and arc-user depend on each other.
+LIST(APPEND LIB_LIST arc-vesa arc arc-user arc posix c_arc l4 x86emu)
+ADD_DEFINITIONS(-DSYS_DEBUG)
+ADD_DEFINITIONS(-DSYS_DEBUG_CALL)
+ADD_DEFINITIONS(-DNO_SYS_HEADERS)
 
-add_definitions(-DSYS_DEBUG)
-add_definitions(-DSYS_DEBUG_CALL)
-add_definitions(-DNO_SYS_HEADERS)
-
-include(${CMAKE_SOURCE_DIR}/Tools/CMake/Driver.cmake)
-
+INCLUDE(${CMAKE_SOURCE_DIR}/Tools/CMake/ArcServer.cmake)

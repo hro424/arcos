@@ -30,50 +30,30 @@
 ///
 /// @file   Services/Devices/Vesa/VbeInfoBlock.h
 /// @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
-/// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  2008
 ///
-
-//$Id: ServerScreen.h 349 2008-05-29 01:54:02Z hro $
 
 #ifndef VESA_SERVERSCREEN_H_
 #define VESA_SERVERSCREEN_H_
 
-#include <Types.h>
 #include <vesa/Screen.h>
 
 /**
- * Slightly extends the Screen class with initialization and server-side
- * functions.
+ * Slightly extends the Screen class with initialization and server-side functions.
  */
 class ServerScreen : public Screen {
 private:
-    // Not instantiable
+    // Not instanciable
     virtual ~ServerScreen();
-
-    ///
-    /// Base address of the frame buffer (server side)
-    ///
-    UByte*  _server_base;
-    
 public:
     /**
      * Constructor. The instance is initialized with information queried from 
      * the BIOS.
      */
-    stat_t Initialize();
-    stat_t CleanUp();
+    status_t init();
+    status_t cleanup();
     
-    UByte* GetFrameBuffer();
-
-    stat_t SetVideoMode(const UInt index);
+    status_t setVideoMode(const UInt index);
 };
 
-inline UByte*
-ServerScreen::GetFrameBuffer()
-{
-    return _server_base;
-}
-
 #endif /*VESA_SERVERSCREEN_H_*/
-

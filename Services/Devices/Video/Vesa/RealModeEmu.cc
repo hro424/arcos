@@ -34,12 +34,10 @@
 ///
 /// Contains the data needed to real-mode emulation for the VESA driver.
 
-//$Id: RealModeEmu.cc 349 2008-05-29 01:54:02Z hro $
-
 #include "RealModeEmu.h"
-#include <PageAllocator.h>
-#include <Types.h>
-#include <sys/Config.h>
+#include <arc/types.h>
+#include <arc/memory.h>
+#include <arc/system.h>
 
 char *emu_main_mem;
 
@@ -56,11 +54,9 @@ __asmbits(void)
 	             "hlt");
 }
 
-stat_t
-realModeEmu_init()
-{
+status_t realModeEmu_init() {
     emu_main_mem = (char *)palloc(X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
-    stat_t err = x86emu_init((UByte *)emu_main_mem);
+    status_t err = x86emu_init((UByte *)emu_main_mem);
     if (err != ERR_NONE)
         return err;
     REAL_MODE_ASM_BEGIN(int10h, codebegin);
@@ -68,16 +64,11 @@ realModeEmu_init()
     return ERR_NONE;
 }
 
-stat_t
-realModeEmu_cleanup()
-{
+status_t realModeEmu_cleanup() {
     x86emu_cleanup();
     return ERR_NONE;
 }
 
-void
-invokeInt10()
-{
+void invokeInt10() {
     x86emu_run(codebegin, codeend, 0);
 }
-

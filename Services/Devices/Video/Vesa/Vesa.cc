@@ -30,170 +30,121 @@
 ///
 /// @file   Services/Devices/Vesa/Vesa.cc
 /// @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
-/// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  2008
 /// 
 
-//$Id: Vesa.cc 349 2008-05-29 01:54:02Z hro $
-
+//$Id: $
+#include <stdio.h>
+#include <arc/console.h>
+#include <arc/status.h>
 
 #include "ServerScreen.h"
 #include "ServerVideoMode.h"
-
-#include <Debug.h>
-#include <Driver.h>
-#include <Ipc.h>
-#include <System.h>
-#include <Types.h>
-#include <sys/Config.h>
 #include <vesa/protocol.h>
-#include <l4/types.h>
 
-static stat_t HandleScreenSize(const L4_Thread_id &tid, L4_Msg_t *msg);
-static stat_t HandleInit(const L4_Thread_id &tid, L4_Msg_t *msg);
-static stat_t HandleSetVideoMode(const L4_Thread_id &tid, L4_Msg_t *msg);
-
-static char persistentarea[PAGE_SIZE * 2] __attribute__ ((aligned (PAGE_SIZE))) IS_PERSISTENT;
-static ServerScreen *serverScreen IS_PERSISTENT;
-
-#define SCREEN_DESC_SIZE                        \
-    (sizeof(ServerScreen) + sizeof(VideoMode) * \
-     (serverScreen->GetNbSupportedModes()))
-
-#define SCREEN_DESC_SIZE_IN_PAGES   \
-    ((SCREEN_DESC_SIZE + PAGE_SIZE - 1) / PAGE_SIZE)
-
-class VesaDriver : public DeviceDriver {
-public:
-    const char *const Name() { return "vesa"; }
-
-    stat_t Initialize();
-    stat_t Recover();
-    stat_t Exit();
-    stat_t Service(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-};
+#include <arc/ipc.h>
+#include <arc/memory.h>
+#include <arc/thread.h>
 
 
-stat_t
-VesaDriver::Initialize()
+static status_t HandleScreenSize(L4_Msg_t *msg);
+static status_t HandleInit(L4_Msg_t *msg);
+static status_t HandleSetVideoMode(L4_Msg_t *msg);
+
+static ServerScreen *serverScreen;
+
+#define SCREEN_DESC_SIZE (sizeof(ServerScreen) + sizeof(VideoMode) * (serverScreen->getNbSupportedModes()))
+#define SCREEN_DESC_SIZE_IN_PAGES ((SCREEN_DESC_SIZE + PAGE_SIZE - 1) / PAGE_SIZE)
+
+int
+main(void)
 {
-    System.Print(System.INFO, "VBE driver starting...\n");
-
+    ConsoleOut(INFO, "VBE driver starting...\n");
+    
     // First get the page for the screen
     // How many pages do we need?
-    /* int nbPages = 2;
-       serverScreen = (ServerScreen *)palloc(nbPages); */
-
-    for (UInt i = 0; i < PAGE_SIZE * 2; i++) {
-        persistentarea[i] = 0;
-    }
-
-    serverScreen = (ServerScreen *)persistentarea;
-    if (serverScreen->Initialize() != ERR_NONE) {
-        System.Print(System.ERROR, "vesa: Cannot initialize screen!\n");
+    int nbPages = 2;
+    serverScreen = (ServerScreen *)palloc(nbPages);
+    
+    if (serverScreen->init() != ERR_NONE) {
+        ConsoleOut(ERROR, "vesa: Cannot initialize screen!\n");
         return ERR_NOT_FOUND;
     }
-
-    return ERR_NONE;
-}
-
-stat_t
-VesaDriver::Recover()
-{
-    return ERR_NONE;
-}
-
-stat_t
-VesaDriver::Exit()
-{
+    screen = serverScreen;
+    
+    //screen->printInfo();
+    
+    L4_ThreadId_t tid;
+    L4_MsgTag_t tag;
+    L4_Msg_t msg;
+    status_t err;
+    
+    tag = L4_Wait(&tid);
+    
+    for (;;) {
+        L4_MsgStore(tag, &msg);
+        switch (L4_Label(tag)) {
+        case MSG_VESA_SCREENSIZE:
+            if ((err = HandleScreenSize(&msg)) != ERR_NONE)
+                ConsoleOut(ERROR, "vesa:GET_SCREENSIZE: %s\n", stat2msg[err]);
+            break;
+        case MSG_VESA_INIT:
+            if ((err = HandleInit(&msg)) != ERR_NONE)
+                ConsoleOut(ERROR, "vesa:INIT: %s\n", stat2msg[err]);
+            break;
+        case MSG_VESA_SET_VIDEO_MODE:
+            if ((err = HandleSetVideoMode(&msg)) != ERR_NONE)
+                ConsoleOut(ERROR, "vesa:SET_VIDEO_MODE: %s\n", stat2msg[err]);
+            break;
+        default:
+            ConsoleOut(WARN, "vesa: Unknown message %lX from %.8lX\n",
+                       L4_Label(tag), tid.raw);
+            break;
+            
+        }
+        L4_Load(&msg);
+        tag = L4_ReplyWait(tid, &tid);
+    }
+    
     // TODO: Enable that when x86emu unmaps the bios pages on cleanup.
     // pfree(main_mem);
-    serverScreen->CleanUp();
-    System.Print(System.INFO, "VBE driver exiting...\n");
-    return ERR_NONE;
+    serverScreen->cleanup();
+	ConsoleOut(INFO, "VBE driver exiting...\n");
+	return 0;
 }
 
-static stat_t
-HandleScreenSize(const L4_Thread_id &tid, L4_Msg_t *msg)
-{
+static status_t HandleScreenSize(L4_Msg_t *msg) {
     // Return how many pages we need to keep the screen data structures
-    L4_Word_t count = SCREEN_DESC_SIZE_IN_PAGES;
-    L4_Put(msg, 0, 1, &count, 0, 0);
+    L4_Word_t nbPages = SCREEN_DESC_SIZE_IN_PAGES;
+    L4_MsgPut(msg, 0, 1, &nbPages, 0, 0);
     return ERR_NONE;   
 }
 
-static stat_t
-HandleInit(const L4_Thread_id &tid, L4_Msg_t *msg)
-{
+static status_t HandleInit(L4_Msg_t *msg) {
     // Map the pages containing the screen and video mode definitions
-    L4_Word_t       dest;
-
-    ENTER;
-    DOUT("serverScreen @ %p\n", serverScreen);
-    dest = L4_Get(msg, 0) & PAGE_MASK;
-    L4_Clear(msg);
-    for (UInt i = 0; i < SCREEN_DESC_SIZE_IN_PAGES; i++) {
-        L4_Fpage_t fpage = L4_FpageLog2((L4_Word_t)serverScreen + (PAGE_SIZE * i),
-                                        PAGE_BITS);
-        L4_Set_Rights(&fpage, L4_FullyAccessible);
-        L4_MapItem_t item = L4_MapItem(fpage, dest + (PAGE_SIZE * i));
-        L4_MsgAppendMapItem(msg, item);
+    L4_Word_t destAddr = L4_MsgWord(msg, 0);
+    L4_MsgPut(msg, 0, 0, 0, 0, 0);
+    for (unsigned int i = 0; i < SCREEN_DESC_SIZE_IN_PAGES; i++) {
+        L4_MapItem_t mapItem = 
+            L4_MapItem(L4_FpageLog2((L4_Word_t)screen + (PAGE_SIZE * i), PAGE_BITS),
+                    (destAddr + (PAGE_SIZE * i)) & PAGE_MASK);
+        L4_MsgAppendMapItem(msg, mapItem);
     }
-    EXIT;
     return ERR_NONE;   
 }
 
-static stat_t
-HandleSetVideoMode(const L4_Thread_id &tid, L4_Msg_t *msg)
-{
-    const ServerVideoMode*  mode;
-    L4_MapItem_t    item;
-    L4_Word_t       base;
-    UInt            index;
-    ENTER;
-
-    index = L4_Get(msg, 0);
-    serverScreen->SetVideoMode(index);
-    mode = static_cast<const ServerVideoMode*>(
-                                        serverScreen->GetSupportedModes());
-    base = reinterpret_cast<L4_Word_t>(serverScreen->GetFrameBuffer());
-    //FIXME: quick hack
-    item = L4_MapItem(L4_FpageAddRights(L4_Fpage(base, mode->LFBSize()),
-                                        L4_FullyAccessible),
-                      0x80000000);
-    L4_Put(msg, 0, 0, 0, 2, &item);
-    EXIT;
-    return ERR_NONE;
-    /*
-    const ServerVideoMode*   mode;
-    L4_Word_t   reg[2];
-    UInt        index;
-   
-    ENTER;
-
-    index = L4_Get(msg, 0);
-
+static status_t HandleSetVideoMode(L4_Msg_t *msg) {
     // First set the requested mode...
-    serverScreen->SetVideoMode(index);
-
+    L4_Word_t modeIndex = L4_MsgWord(msg, 0);
+    serverScreen->setVideoMode(modeIndex);
+    
     // Now map the linear frame buffer
-    mode = static_cast<const ServerVideoMode*>(
-                                        serverScreen->GetSupportedModes());
-    reg[0] = reinterpret_cast<addr_t>(serverScreen->GetFrameBuffer());
-    reg[1]= mode[index].LFBSize();
-
-    L4_Put(msg, ERR_NONE, 2, reg, 0, 0);
-
-    EXIT;
+    const ServerVideoMode &mode = ((const ServerVideoMode *)serverScreen->getSupportedModes())[modeIndex];
+    L4_Word_t lfbaddress = (L4_Word_t) screen->getFrameBuffer();
+    L4_MapItem_t mapItem =
+        L4_MapItem(L4_FpageAddRights(L4_Fpage(lfbaddress, mode.LFBSize()), L4_FullyAccessible),
+                VBE_LFB_ADDRESS & PAGE_MASK);
+    L4_MsgPut(msg, 0, 0, 0, 2, &mapItem);
+    
     return ERR_NONE;
-    */
 }
-
-ARC_DRIVER(VesaDriver);
-
-BEGIN_HANDLERS(VesaDriver)
-    CONNECT_HANDLER(MSG_VESA_SCREENSIZE, HandleScreenSize)
-    CONNECT_HANDLER(MSG_VESA_INIT, HandleInit)
-    CONNECT_HANDLER(MSG_VESA_SET_VIDEO_MODE, HandleSetVideoMode)
-END_HANDLERS
-

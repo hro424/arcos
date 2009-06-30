@@ -37,14 +37,10 @@
 #define SERVERVIDEOMODE_H_
 
 #include <vesa/VideoMode.h>
-#include "ModeInfoBlock.h"
 
-/**
- * Slightly extends the VideoMode class with initialization and server-side functions.
- */
 class ServerVideoMode : public VideoMode {
 public:
-    void Initialize(UShort number, const ModeInfoBlock* const info);
+    void init(UShort number, const struct ModeInfoBlock *const info);
     UInt LFBSize() const;
     UInt LFBNbPages() const;
 };

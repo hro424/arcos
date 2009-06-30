@@ -34,12 +34,10 @@
 ///
 /// Defines the ModeInfoBlock VESA VBE 2.0 structure.
 
-//$Id: ModeInfoBlock.h 349 2008-05-29 01:54:02Z hro $
+#ifndef MODEINFOBLOCK_H_
+#define MODEINFOBLOCK_H_
 
-#ifndef VESA_MODEINFOBLOCK_H_
-#define VESA_MODEINFOBLOCK_H_
-
-#include <Types.h>
+#include <arc/types.h>
 
 /*
  * Masks for the ModesAttributes field of
@@ -60,8 +58,7 @@
 #define VIDEO_MODE_KEEP_DISPLAY_MEMORY (1 << 15)
 
 /**
- * Contains information about a specific video mode. Only used internally.
- * See the VBE Core Functions Standard, version 3.0 for details.
+ * Contains information about a specific video mode
  */
 struct ModeInfoBlock {
     // Historical VBE information
@@ -106,5 +103,4 @@ struct ModeInfoBlock {
     
 } __attribute__((packed));
 
-#endif /* MODEINFOBLOCK_H_ */
-
+#endif /*MODEINFOBLOCK_H_*/
