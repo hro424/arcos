@@ -189,17 +189,23 @@ private:
 public:
     UInt Offset() const { return _offset; }
 
-    void SetBlockSize(size_t size) {
-        _blockSize = size;
-    }
+    void SetBlockSize(size_t size) { _blockSize = size; }
 
     UInt BlockSize() const { return _blockSize; }
 
-    stat_t Initialize(Disk* disk, UInt blockSize);
+    stat_t Initialize(Disk* disk, UInt blockSize)
+    {
+        _disk = disk;
+        _blockSize = blockSize;
+        _offset = 0;
+
+        return ERR_NONE;
+    }
+
 
     stat_t Open(UInt number);
 
-    stat_t Close();
+    stat_t Close() { return ERR_NONE; }
 
     ///
     /// Reads the block of data into the buffer.
@@ -214,13 +220,13 @@ public:
 
     stat_t Write(const void *buf, UInt block, size_t count);
 
-    stat_t ReadBlock(void *buf, UInt block);
+    stat_t ReadBlock(void *buf, UInt block) { return Read(buf, block, 1); }
 
-    stat_t WriteBlock(const void *buf, UInt block);
+    stat_t WriteBlock(const void *buf, UInt block)
+    { return Write(buf, block, 1); }
 
-    UInt Block2Sector(UInt num) const {
-        return num * _blockSize / Disk::SECTOR_SIZE;
-    }
+    UInt Block2Sector(UInt num) const
+    { return num * _blockSize / Disk::SECTOR_SIZE; }
 
     PartitionType Type() const { return _type; }
 

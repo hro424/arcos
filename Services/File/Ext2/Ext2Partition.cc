@@ -75,8 +75,8 @@ Ext2Partition::DumpGroups()
 stat_t
 Ext2Partition::InitGroupDescriptors()
 {
-    size_t      len;
-    stat_t    err = ERR_UNKNOWN;
+    size_t  len;
+    stat_t  err = ERR_UNKNOWN;
     ENTER;
 
     //
@@ -95,7 +95,7 @@ Ext2Partition::InitGroupDescriptors()
     else {
         err = _partition->Read(_group_desc,
                    _superblock->firstDataBlock + Ext2GroupDesc::OFFSET,
-                   len / _partition->BlockSize());
+                   (len + _partition->BlockSize()) / _partition->BlockSize());
     }
 
 #ifdef SYS_DEBUG
@@ -209,23 +209,6 @@ Ext2Partition::Initialize(Partition *partition)
     return ERR_NONE;
 }
 
-
-UInt
-Ext2Partition::AllocateDataBlock(Int ino, size_t count)
-{
-    Int group = ino / _superblock->inodesPerGroup;
-    assert(_data_block_allocator[group] != 0);
-    return _data_block_allocator[group]->Allocate(count);
-}
-
-void
-Ext2Partition::ReleaseDataBlock(Int ino, UInt blkno, size_t count)
-{
-    Int group = ino / _superblock->inodesPerGroup;
-    assert(_data_block_allocator[group] != 0);
-    return _data_block_allocator[group]->Release(blkno, count);
-}
-
 Int
 Ext2Partition::AllocateInode()
 {
@@ -260,56 +243,8 @@ Ext2Partition::Read(Int ino, Ext2Inode* inode)
     Int group = ino / _superblock->inodesPerGroup;
     Int offset = ino % _superblock->inodesPerGroup;
 
+    DOUT("group: %ld offset: %ld\n", group, offset);
     assert(_inode_table[group] != 0);
     _inode_table[group]->Read(offset - 1, inode);
-}
-
-void
-Ext2Partition::Write(Int ino, const Ext2Inode* inode)
-{
-    Int group = ino / _superblock->inodesPerGroup;
-    Int offset = ino % _superblock->inodesPerGroup;
-
-    assert(_inode_table[group] != 0);
-    _inode_table[group]->Write(offset - 1, inode);
-}
-
-size_t
-Ext2Partition::BlockSizeLog2()
-{
-    return _superblock->BlockSizeLog2();
-}
-
-size_t
-Ext2Partition::BlockSize()
-{
-    return _partition->BlockSize();
-}
-
-stat_t
-Ext2Partition::ReadBlock(void* buffer, UInt block)
-{
-    return _partition->ReadBlock(buffer, block);
-}
-
-stat_t
-Ext2Partition::WriteBlock(const void* buffer, UInt block)
-{
-    return _partition->WriteBlock(buffer, block);
-}
-
-void
-Ext2Partition::SyncSuperBlock()
-{
-    _partition->WriteBlock(_superblock, 0);
-}
-
-void
-Ext2Partition::SyncGroupDescriptors()
-{
-    size_t len = sizeof(Ext2GroupDesc) * _groups / _partition->BlockSize();
-    _partition->Write(_group_desc,
-                      _superblock->firstDataBlock + Ext2GroupDesc::OFFSET,
-                      len);
 }
 

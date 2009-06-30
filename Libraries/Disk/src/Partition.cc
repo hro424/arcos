@@ -42,16 +42,6 @@
 
 
 stat_t
-Partition::Initialize(Disk *disk, UInt blockSize)
-{
-    _disk = disk;
-    _blockSize = blockSize;
-    _offset = 0;
-
-    return ERR_NONE;
-}
-
-stat_t
 Partition::Open(UInt number)
 {
     MBR             mbr;
@@ -72,12 +62,6 @@ Partition::Open(UInt number)
     _type = (PartitionType)mbr.partitionTable[number].type;
     _id = number;
 
-    return ERR_NONE;
-}
-
-stat_t
-Partition::Close()
-{
     return ERR_NONE;
 }
 
@@ -113,17 +97,5 @@ Partition::Write(const void *buf, UInt block, size_t block_count)
 
     EXIT;
     return err;
-}
-
-stat_t
-Partition::ReadBlock(void *buf, UInt boff)
-{
-    return Read(buf, boff, 1);
-}
-
-stat_t
-Partition::WriteBlock(const void *buf, UInt boff)
-{
-    return Write(buf, boff, 1);
 }
 

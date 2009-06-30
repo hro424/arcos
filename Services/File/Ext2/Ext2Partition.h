@@ -38,8 +38,14 @@
 #ifndef ARC_FILE_EXT2_PARTITION_H
 #define ARC_FILE_EXT2_PARTITION_H
 
+#include <Assert.h>
+#include <Disk.h>
+#include "Ext2SuperBlock.h"
+#include "Ext2DataBlock.h"
+#include "Ext2InodeTable.h"
+#include "Ext2Partition.h"
+
 class Partition;
-class Ext2SuperBlock;
 class Ext2GroupDesc;
 class Ext2DataBlockAllocator;
 class Ext2Inode;
@@ -125,12 +131,20 @@ public:
     /// @param ino          the file inode number
     /// @param count        the count of blocks to be allocated
     ///
-    UInt AllocateDataBlock(Int ino, size_t count);
+    UInt AllocateDataBlock(Int ino, size_t count) {
+        Int group = ino / _superblock->inodesPerGroup;
+        assert(_data_block_allocator[group] != 0);
+        return _data_block_allocator[group]->Allocate(count);
+    }
 
     ///
     /// Releases the count of data blocks.
     ///
-    void ReleaseDataBlock(Int ino, UInt blkno, size_t count);
+    void ReleaseDataBlock(Int ino, UInt blkno, size_t count) {
+        Int group = ino / _superblock->inodesPerGroup;
+        assert(_data_block_allocator[group] != 0);
+        return _data_block_allocator[group]->Release(blkno, count);
+    }
 
     ///
     /// Creates a new file.
@@ -150,39 +164,56 @@ public:
     ///
     /// Updates the inode.
     ///
-    void Write(Int ino, const Ext2Inode* inode);
+    void Write(Int ino, const Ext2Inode* inode)
+    {
+        Int group = ino / _superblock->inodesPerGroup;
+        Int offset = ino % _superblock->inodesPerGroup;
+
+        assert(_inode_table[group] != 0);
+        _inode_table[group]->Write(offset - 1, inode);
+    }
+
 
     ///
     /// Obtains the block size of this partition.
     ///
-    size_t BlockSizeLog2();
+    size_t BlockSizeLog2() { return _superblock->BlockSizeLog2(); }
 
     ///
     /// Obtains the block size of this partition.
     ///
-    size_t BlockSize();
+    size_t BlockSize() { return _partition->BlockSize(); }
 
     ///
     /// Read the contents of the specified block into the buffer.
     /// NOTE: buffer has to be block size.
     ///
-    stat_t ReadBlock(void* buffer, UInt block);
+    stat_t ReadBlock(void* buffer, UInt block)
+    { return _partition->ReadBlock(buffer, block); }
 
     ///
     /// Write the given data to the specified block.
     /// NOTE: buffer has to be block size.
     ///
-    stat_t WriteBlock(const void* buffer, UInt block);
+    stat_t WriteBlock(const void* buffer, UInt block)
+    { return _partition->WriteBlock(buffer, block); }
 
     ///
     /// Synchronizes the data with the superblock.
     ///
-    void SyncSuperBlock();
+    void SyncSuperBlock()
+    { _partition->WriteBlock(_superblock, 0); }
 
     ///
     /// Synchronizes the internal dta with the group descriptors.
     ///
-    void SyncGroupDescriptors();
+    void SyncGroupDescriptors()
+    {
+        size_t len = sizeof(Ext2GroupDesc) * _groups / _partition->BlockSize();
+        _partition->Write(_group_desc,
+                          _superblock->firstDataBlock + Ext2GroupDesc::OFFSET,
+                          len);
+    }
 
     ///
     /// Allocates a cache block
