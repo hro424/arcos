@@ -42,7 +42,7 @@
 /**
  * Pointer to the real-mode emulated memory.
  */
-extern char *emu_main_mem;
+extern addr_t _rme_base;
 
 /*
  * These macros interpret the return of VBE functions.
@@ -55,12 +55,12 @@ extern char *emu_main_mem;
  * Initializes the x86 real-mode emulation layer. Must be called before
  * anything!
  */
-status_t realModeEmu_init();
+addr_t InitializeRealModeEmulator();
 
 /**
  * Cleanup the x86 real-mode emulation layer.
  */
-status_t realModeEmu_cleanup();
+void CleanupRealModeEmulator();
 
 /**
  * Invoke interrupt 0x10. Intput and output are handled

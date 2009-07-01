@@ -35,6 +35,6 @@
 include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/System/include
     ${CMAKE_SOURCE_DIR}/Libraries/Arc/include)
-set(LIB_NAME vesa0)
+set(LIB_NAME vesa)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Library.cmake)
 

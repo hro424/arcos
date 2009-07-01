@@ -37,7 +37,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Include/arch/${ARCH}
     ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-file(GLOB SRCS *.cpp *.cc)
+file(GLOB SRCS *.cpp *.cc *.c)
 
 add_library(${LIB_NAME} STATIC ${SRCS})
 

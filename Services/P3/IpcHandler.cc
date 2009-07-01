@@ -606,7 +606,7 @@ IpcHandler::HandleMapBios(L4_ThreadId_t tid, L4_Msg_t *msg)
     L4_Fpage_t  fpage;
     stat_t      err;
 
-    address = L4_MsgWord(msg, 1);
+    address = L4_Get(msg, 1);
     
     // Get the pages from the root pager
     fpage = L4_FpageLog2(address, PAGE_BITS);

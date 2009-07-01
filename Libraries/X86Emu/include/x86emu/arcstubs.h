@@ -28,21 +28,20 @@
  */
 
 ///
-/// @file   Services/Devices/Vesa/ServerVideoMode.h
+/// @file   Services/x86emu/x86emu/arcstubs.h
 /// @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
 /// @since  2008
-///
+/// 
 
-#ifndef SERVERVIDEOMODE_H_
-#define SERVERVIDEOMODE_H_
+#ifndef _ARCSTUBS_H__
+#define _ARCSTUBS_H__
 
-#include <vesa/VideoMode.h>
+#include <x86emu/x86emu.h>
 
-class ServerVideoMode : public VideoMode {
-public:
-    void init(UShort number, const struct ModeInfoBlock *const info);
-    UInt LFBSize() const;
-    UInt LFBNbPages() const;
-};
+extern X86EMU_pioFuncs my_pioFuncs;
+extern X86EMU_memFuncs my_memFuncs;
 
-#endif /*SERVERVIDEOMODE_H_*/
+// extern L4_Word8_t *main_mem;
+// extern L4_Word8_t *code_area;
+
+#endif

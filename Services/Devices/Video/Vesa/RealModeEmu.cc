@@ -34,12 +34,11 @@
 ///
 /// Contains the data needed to real-mode emulation for the VESA driver.
 
+#include <System.h>
+#include <PageAllocator.h>
 #include "RealModeEmu.h"
-#include <arc/types.h>
-#include <arc/memory.h>
-#include <arc/system.h>
 
-char *emu_main_mem;
+addr_t _rme_base;
 
 static const L4_Word8_t *codebegin, *codeend;
 
@@ -54,21 +53,24 @@ __asmbits(void)
 	             "hlt");
 }
 
-status_t realModeEmu_init() {
-    emu_main_mem = (char *)palloc(X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
-    status_t err = x86emu_init((UByte *)emu_main_mem);
-    if (err != ERR_NONE)
-        return err;
+addr_t InitializeRealModeEmulator() {
+    _rme_base = palloc(X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
+    if (x86emu_init(_rme_base) != ERR_NONE) {
+        pfree(_rme_base, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
+        return 0;
+    }
     REAL_MODE_ASM_BEGIN(int10h, codebegin);
     REAL_MODE_ASM_END(int10h, codeend);
-    return ERR_NONE;
+
+    return _rme_base;
 }
 
-status_t realModeEmu_cleanup() {
+void CleanupRealModeEmulator() {
+    pfree(_rme_base, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
     x86emu_cleanup();
-    return ERR_NONE;
 }
 
 void invokeInt10() {
     x86emu_run(codebegin, codeend, 0);
 }
+

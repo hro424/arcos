@@ -164,11 +164,12 @@ void qsort(void *base, size_t nmemb, size_t,
  * won't, but how do we know? Or maybe we should compile with -fnobuiltin? 
  */
 
+#if 0
 int abs(int);
 long labs(long);
 long long llabs(long long);
 
-#if 0
+#else
 static inline int
 abs(int x)
 {

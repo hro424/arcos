@@ -33,50 +33,57 @@
 /// @since  2008
 ///
 /// Video mode definition.
+///
 
-#include <arc/console.h>
-#include <arc/system.h>
-#include "ServerVideoMode.h"
-#include "ModeInfoBlock.h"
+#include <System.h>
+#include "VideoMode.h"
 
-void ServerVideoMode::init(UShort nb, const ModeInfoBlock *info)
+VideoMode::VideoMode(UShort number, const ModeInfoBlock *info)
+    : Number(number), Xres(info->XResolution), Yres(info->YResolution),
+    Bpp(info->BitsPerPixel), RedMask(0), GreenMask(0), BlueMask(0),
+    RedMaskSize(info->RedMaskSize), RedFieldPos(info->RedFieldPosition),
+    GreenMaskSize(info->GreenMaskSize), GreenFieldPos(info->GreenFieldPosition),
+    BlueMaskSize(info->BlueMaskSize), BlueFieldPos(info->BlueFieldPosition),
+    NumberOfPages(info->NumberOfImagePages + 1), LFBAddress(info->PhysBasePtr)
 {
-    Number = nb;
-    Xres = info->XResolution;
-    Yres = info->YResolution;
-    Bpp = info->BitsPerPixel;
-    RedMaskSize = info->RedMaskSize;
-    RedFieldPos = info->RedFieldPosition;
-    GreenMaskSize = info->GreenMaskSize;
-    GreenMaskSize = info->GreenMaskSize;
-    BlueFieldPos = info->BlueFieldPosition;
-    BlueFieldPos = info->BlueFieldPosition;
-    NumberOfPages = info->NumberOfImagePages + 1;
-    LFBAddress = info->PhysBasePtr;
-    
-    switch (info->BitsPerPixel) {
-    case 15:
-        Bytespp = 2;
-        break;
-    default:
-        Bytespp = info->BitsPerPixel / 8;
-        break;
+    for (int i = 0; i < RedMaskSize; i++) {
+        RedMask |= (1 << RedFieldPos + i);
     }
-    RedMask = 0;
-    for (int i = 0; i < RedMaskSize; i++) RedMask |= (1 << RedFieldPos + i);
+
+    for (int i = 0; i < GreenMaskSize; i++) {
+        GreenMask |= (1 << GreenFieldPos + i);
+    }
+
+    for (int i = 0; i < BlueMaskSize; i++) {
+        BlueMask |= (1 << BlueFieldPos + i);
+    }
+
     RedLoss = 0xff >> (8 - RedMaskSize) << (8 - RedMaskSize);
-    GreenMask = 0;
-    for (int i = 0; i < GreenMaskSize; i++) GreenMask |= (1 << GreenFieldPos + i);
     GreenLoss = 0xff >> (8 - GreenMaskSize) << (8 - GreenMaskSize);
-    BlueMask = 0;
-    for (int i = 0; i < BlueMaskSize; i++) BlueMask |= (1 << BlueFieldPos + i);
     BlueLoss = 0xff >> (8 - BlueMaskSize) << (8 - BlueMaskSize);
 }
 
-UInt ServerVideoMode::LFBSize() const {
-    return xres() * yres() * bytespp() * numberOfPages();
+const UInt VideoMode::rgbToPixel(const RGBTriplet rgb) const
+{
+    UInt pixel = (rgb.red >> (8 - redMaskSize())) << redFieldPos();
+    pixel |= (rgb.green >> (8 - greenMaskSize())) << greenFieldPos();
+    pixel |= (rgb.blue >> (8 - blueMaskSize())) << blueFieldPos();
+    return pixel;
 }
 
-UInt ServerVideoMode::LFBNbPages() const {
-    return (LFBSize() + PAGE_SIZE - 1) / PAGE_SIZE;
+const RGBTriplet VideoMode::pixelToRGB(const UInt pixel) const
+{
+    UShort red, green, blue;
+    red = ((pixel & redMask()) >> (redFieldPos())) << (8 - redMaskSize());
+    green = ((pixel & greenMask()) >> (greenFieldPos())) << (8 - greenMaskSize());
+    blue = ((pixel & blueMask()) >> (blueFieldPos())) << (8 - blueMaskSize());
+    return RGBTriplet(red, green, blue);
 }
+
+void
+VideoMode::Print() const
+{
+    System.Print("%x: %dx%dx%d, %d pages\n",
+                 Number, Xres, Yres, Bpp, NumberOfPages);
+}
+

@@ -26,34 +26,20 @@
 ##
 
 ##
-##  @file   Services/Devices/Vesa/CMakeLists.txt
+##  @file   Services/Devices/x86emu/CMakeLists.txt
 ##  @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
 ##  @date   2008
 ##
 
-#INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/Include)
+#INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/Include .)
 
 #FILE(GLOB SRCS *.cc)
-#SET(TEXT_PHYS 0x600000)
-#SET(PROG vesa)
-#NOTE: arc and arc-user depend on each other.
-#LIST(APPEND LIB_LIST arc arc-user arc posix c_arc l4 x86emu)
-#ADD_DEFINITIONS(-DSYS_DEBUG)
-#ADD_DEFINITIONS(-DSYS_DEBUG_CALL)
 #ADD_DEFINITIONS(-DNO_SYS_HEADERS)
 
-#INCLUDE(${CMAKE_SOURCE_DIR}/Tools/CMake/ArcServer.cmake)
+#ADD_LIBRARY(x86emu STATIC ${SRCS})
+#TARGET_LINK_LIBRARIES(x86emu arc arc-user arc posix c_arc l4 x86emuarc x86emucore posix arc)
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}/Libraries/X86Emu/include
-    ${CMAKE_SOURCE_DIR}/Libraries/C/include)
+#ADD_SUBDIRECTORY(lib)
 
-set(MODULE_NAME vesa)
-list(APPEND LIBS x86emu sys)
-
-add_definitions(-DNO_SYS_HEADERS)
-add_definitions(-DSYS_DEBUG)
-add_definitions(-DSYS_DEBUG_CALL)
-
-include(${CMAKE_SOURCE_DIR}/Tools/CMake/Lv1Service.cmake)
+add_subdirectory(src)
 

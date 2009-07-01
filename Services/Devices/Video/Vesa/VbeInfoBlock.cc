@@ -1,5 +1,4 @@
 /*
- *
  *  Copyright (C) 2008, Waseda University.
  *  All rights reserved.
  *
@@ -28,32 +27,39 @@
  */
 
 ///
-/// @file   Services/Devices/Vesa/VbeInfoBlock.h
+/// @file   Services/Devices/Vesa/VbeInfoBlock.cc
 /// @author Alexandre Courbot <alex@dcl.info.waseda.ac.jp>
+/// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  2008
 ///
+/// Defines the VbeInfoBlock VESA VBE 2.0 structure.
+///
 
-#ifndef VESA_SERVERSCREEN_H_
-#define VESA_SERVERSCREEN_H_
+#include <Debug.h>
+#include <System.h>
+#include <String.h>
 
-#include <vesa/Screen.h>
+#include "VbeInfoBlock.h"
+#include "RealModeEmu.h"
 
-/**
- * Slightly extends the Screen class with initialization and server-side functions.
- */
-class ServerScreen : public Screen {
-private:
-    // Not instanciable
-    virtual ~ServerScreen();
-public:
-    /**
-     * Constructor. The instance is initialized with information queried from 
-     * the BIOS.
-     */
-    status_t init();
-    status_t cleanup();
-    
-    status_t setVideoMode(const UInt index);
-};
+stat_t
+ReadVbeInfoBlock(VbeInfoBlock* block)
+{
+    addr_t  block_addr;
 
-#endif /*VESA_SERVERSCREEN_H_*/
+    // First get the address of the VBE info block.
+    X86EMU_SETREG(AX, 0x4f00);
+    X86EMU_SETREG(ES, X86EMU_DATA_AREA_OFFSET >> 4);
+    X86EMU_SETREG(DI, 0);
+    invokeInt10();
+    if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
+        System.Print("vesa: Cannot query VBE capabalities!\n");
+        return ERR_NOT_FOUND;
+    }
+ 
+    memset(block, 0, sizeof(VbeInfoBlock));
+    block_addr = _rme_base + X86EMU_DATA_AREA_OFFSET;
+    memcpy(block, (const void*)block_addr, sizeof(VbeInfoBlock));
+    return ERR_NONE;
+}
+

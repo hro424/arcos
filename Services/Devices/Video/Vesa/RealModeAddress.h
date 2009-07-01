@@ -37,15 +37,18 @@
 #ifndef REALMODEADDRESS_H_
 #define REALMODEADDRESS_H_
 
-#include <arc/types.h>
+#include <Types.h>
+#include "RealModeEmu.h"
 
-class RealModeAddress {
+struct RealModeAddress {
     UShort  _offset;
     UShort  _segment;
-public:
-    const UShort segment() const { return _segment; }
-    const UShort offset() const { return _offset; }
-    const UInt address() const { return (_segment << 4) + _offset; }
+
+    UShort segment() const { return _segment; }
+    UShort offset() const { return _offset; }
+    addr_t address() const { return _rme_base + (_segment << 4) + _offset; }
+
 } __attribute__((packed));
 
 #endif /*REALMODEADDRESS_H_*/
+

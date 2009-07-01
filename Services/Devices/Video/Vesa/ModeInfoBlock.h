@@ -37,7 +37,7 @@
 #ifndef MODEINFOBLOCK_H_
 #define MODEINFOBLOCK_H_
 
-#include <arc/types.h>
+#include <Types.h>
 
 /*
  * Masks for the ModesAttributes field of
@@ -65,12 +65,12 @@ struct ModeInfoBlock {
     UShort  ModeAttributes;
     UByte   WinAAttributes;
     UByte   WinBAttributes;
-    UShort   WinGranularity;
-    UShort   WinSize;
-    UShort   WinASegment;
-    UShort   WinBSegment;
-    UInt   WinFuncPtr;
-    UShort   BytesPerScanLine;
+    UShort  WinGranularity;
+    UShort  WinSize;
+    UShort  WinASegment;
+    UShort  WinBSegment;
+    UInt    WinFuncPtr;
+    UShort  BytesPerScanLine;
     
     // VBE 1.2 information
     UShort  XResolution;
@@ -97,10 +97,13 @@ struct ModeInfoBlock {
     UByte   DirectColorModeInfo;
     
     // VBE 2.0 information
-    UInt   PhysBasePtr;
-    UInt   __reserved2;
+    UInt    PhysBasePtr;
+    UInt    __reserved2;
     UShort  __reserved3;
     
 } __attribute__((packed));
 
+stat_t ReadModeInfoBlock(ModeInfoBlock* block, UInt number);
+
 #endif /*MODEINFOBLOCK_H_*/
+

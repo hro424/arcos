@@ -33,118 +33,144 @@
 /// @since  2008
 /// 
 
-//$Id: $
-#include <stdio.h>
-#include <arc/console.h>
-#include <arc/status.h>
+#include <Debug.h>
+#include <System.h>
+#include <Random.h>
 
-#include "ServerScreen.h"
-#include "ServerVideoMode.h"
-#include <vesa/protocol.h>
+#include "Vbe.h"
+#include "VideoMode.h"
 
-#include <arc/ipc.h>
-#include <arc/memory.h>
-#include <arc/thread.h>
+#define WIDTH 640
+#define HEIGHT 480
 
+#define PUTPIXEL(X,Y,COL) fb[(Y) * WIDTH + (X)] = (COL)
+#define GETPIXEL(X,Y) fb[(Y) * WIDTH + (X)]
 
-static status_t HandleScreenSize(L4_Msg_t *msg);
-static status_t HandleInit(L4_Msg_t *msg);
-static status_t HandleSetVideoMode(L4_Msg_t *msg);
+const VideoMode *vMode;
 
-static ServerScreen *serverScreen;
+UShort*
+GetFrameBuffer() {
+    return (UShort*)VBE_LFB_ADDRESS;
+}
 
-#define SCREEN_DESC_SIZE (sizeof(ServerScreen) + sizeof(VideoMode) * (serverScreen->getNbSupportedModes()))
-#define SCREEN_DESC_SIZE_IN_PAGES ((SCREEN_DESC_SIZE + PAGE_SIZE - 1) / PAGE_SIZE)
+///// FIRE
+
+#define RESISTANCE 50
+#define VIVACITY 100
+#define INTENSITY 200
+
+void
+fireRoot()
+{
+    UShort* fb = GetFrameBuffer();
+    for (int j = HEIGHT - 2; j < HEIGHT; j++) {
+        // First light some new pixels
+        for (int i = 0; i < VIVACITY; i++) {
+            int pos = rand() % WIDTH;
+            int color = INTENSITY + (rand() % (255 - INTENSITY));
+            PUTPIXEL(pos, j, vMode->rgbToPixel(RGBTriplet(color, color, color)));
+        }
+        // Then shut other pixels down
+        for (int i = 0; i < RESISTANCE; i++) {
+            int pos = rand() % WIDTH;
+            PUTPIXEL(pos, j, 0);
+        }
+    }
+}
+
+void
+fireEffect()
+{
+    UShort* fb = GetFrameBuffer();
+    for (int y = 400; y < HEIGHT - 2; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            UShort red, green, blue;
+            
+            // Lower pixel
+            RGBTriplet pixel = vMode->pixelToRGB(GETPIXEL(x, y + 1));
+            red = pixel.red;
+            green = pixel.green;
+            blue = pixel.blue;
+            
+            // 2nd lower pixel
+            pixel = vMode->pixelToRGB(GETPIXEL(x, y + 2));
+            red += pixel.red;
+            green += pixel.green;
+            blue += pixel.blue;
+            
+            // Lower left pixel
+            if (x > 0) {
+                pixel = vMode->pixelToRGB(GETPIXEL(x - 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
+            }
+            
+            // Lower right pixel
+            if (x < WIDTH - 1) {
+                pixel = vMode->pixelToRGB(GETPIXEL(x + 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
+            }
+            
+            // Now fix the values
+#define REDDEC 2
+#define GREENDEC 10
+#define BLUEDEC 150
+            if (red > REDDEC) {
+                red -= REDDEC; else red = 0;
+            }
+            if (green > GREENDEC) {
+                green -= GREENDEC; else green = 0;
+            }
+            if (blue > BLUEDEC) {
+                blue -= BLUEDEC; else blue = 0;
+            }
+            red /= 4; green /= 4; blue /= 4;
+            
+            // And write the new pixel
+            PUTPIXEL(x, y, vMode->rgbToPixel(RGBTriplet(red, green, blue)));
+        }
+    }
+}
+
+///// FIRE
+
 
 int
-main(void)
+server_main(int argc, char* argv[], int stat)
 {
-    ConsoleOut(INFO, "VBE driver starting...\n");
-    
-    // First get the page for the screen
-    // How many pages do we need?
-    int nbPages = 2;
-    serverScreen = (ServerScreen *)palloc(nbPages);
-    
-    if (serverScreen->init() != ERR_NONE) {
-        ConsoleOut(ERROR, "vesa: Cannot initialize screen!\n");
-        return ERR_NOT_FOUND;
+    addr_t      base;
+    Vbe         vbe;
+
+    System.Print("VBE driver starting...\n");
+    base = InitializeRealModeEmulator();
+    if (base == 0) {
+        return -1;
     }
-    screen = serverScreen;
-    
-    //screen->printInfo();
-    
-    L4_ThreadId_t tid;
-    L4_MsgTag_t tag;
-    L4_Msg_t msg;
-    status_t err;
-    
-    tag = L4_Wait(&tid);
-    
+
+    vbe.Initialize();
+
+    DOUT("Set video mode\n");
+    if (vbe.SetVideoMode(2) != ERR_NONE) {
+        System.Print("Cannot set video mode!\n");
+        return ERR_UNKNOWN;
+    }
+
+    vMode = vbe.GetVideoMode(2);
+
     for (;;) {
-        L4_MsgStore(tag, &msg);
-        switch (L4_Label(tag)) {
-        case MSG_VESA_SCREENSIZE:
-            if ((err = HandleScreenSize(&msg)) != ERR_NONE)
-                ConsoleOut(ERROR, "vesa:GET_SCREENSIZE: %s\n", stat2msg[err]);
-            break;
-        case MSG_VESA_INIT:
-            if ((err = HandleInit(&msg)) != ERR_NONE)
-                ConsoleOut(ERROR, "vesa:INIT: %s\n", stat2msg[err]);
-            break;
-        case MSG_VESA_SET_VIDEO_MODE:
-            if ((err = HandleSetVideoMode(&msg)) != ERR_NONE)
-                ConsoleOut(ERROR, "vesa:SET_VIDEO_MODE: %s\n", stat2msg[err]);
-            break;
-        default:
-            ConsoleOut(WARN, "vesa: Unknown message %lX from %.8lX\n",
-                       L4_Label(tag), tid.raw);
-            break;
-            
-        }
-        L4_Load(&msg);
-        tag = L4_ReplyWait(tid, &tid);
+        fireRoot();
+        fireEffect();
     }
-    
+
+    vbe.Finalize();
+
     // TODO: Enable that when x86emu unmaps the bios pages on cleanup.
     // pfree(main_mem);
-    serverScreen->cleanup();
-	ConsoleOut(INFO, "VBE driver exiting...\n");
+    CleanupRealModeEmulator();
+	System.Print("VBE driver exiting...\n");
 	return 0;
 }
 
-static status_t HandleScreenSize(L4_Msg_t *msg) {
-    // Return how many pages we need to keep the screen data structures
-    L4_Word_t nbPages = SCREEN_DESC_SIZE_IN_PAGES;
-    L4_MsgPut(msg, 0, 1, &nbPages, 0, 0);
-    return ERR_NONE;   
-}
-
-static status_t HandleInit(L4_Msg_t *msg) {
-    // Map the pages containing the screen and video mode definitions
-    L4_Word_t destAddr = L4_MsgWord(msg, 0);
-    L4_MsgPut(msg, 0, 0, 0, 0, 0);
-    for (unsigned int i = 0; i < SCREEN_DESC_SIZE_IN_PAGES; i++) {
-        L4_MapItem_t mapItem = 
-            L4_MapItem(L4_FpageLog2((L4_Word_t)screen + (PAGE_SIZE * i), PAGE_BITS),
-                    (destAddr + (PAGE_SIZE * i)) & PAGE_MASK);
-        L4_MsgAppendMapItem(msg, mapItem);
-    }
-    return ERR_NONE;   
-}
-
-static status_t HandleSetVideoMode(L4_Msg_t *msg) {
-    // First set the requested mode...
-    L4_Word_t modeIndex = L4_MsgWord(msg, 0);
-    serverScreen->setVideoMode(modeIndex);
-    
-    // Now map the linear frame buffer
-    const ServerVideoMode &mode = ((const ServerVideoMode *)serverScreen->getSupportedModes())[modeIndex];
-    L4_Word_t lfbaddress = (L4_Word_t) screen->getFrameBuffer();
-    L4_MapItem_t mapItem =
-        L4_MapItem(L4_FpageAddRights(L4_Fpage(lfbaddress, mode.LFBSize()), L4_FullyAccessible),
-                VBE_LFB_ADDRESS & PAGE_MASK);
-    L4_MsgPut(msg, 0, 0, 0, 2, &mapItem);
-    
-    return ERR_NONE;
-}

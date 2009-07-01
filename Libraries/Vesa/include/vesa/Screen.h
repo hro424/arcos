@@ -39,7 +39,6 @@
 #ifndef ARC_VESASCREEN_H_
 #define ARC_VESASCREEN_H_
 
-#define SYS_DEBUG
 #include <Debug.h>
 #include <Types.h>
 #include <vesa/RGBTriplet.h>
