@@ -48,11 +48,6 @@
 
 const VideoMode *vMode;
 
-UShort*
-GetFrameBuffer() {
-    return (UShort*)VBE_LFB_ADDRESS;
-}
-
 ///// FIRE
 
 #define RESISTANCE 50
@@ -60,9 +55,8 @@ GetFrameBuffer() {
 #define INTENSITY 200
 
 void
-fireRoot()
+fireRoot(UShort* fb)
 {
-    UShort* fb = GetFrameBuffer();
     for (int j = HEIGHT - 2; j < HEIGHT; j++) {
         // First light some new pixels
         for (int i = 0; i < VIVACITY; i++) {
@@ -79,9 +73,8 @@ fireRoot()
 }
 
 void
-fireEffect()
+fireEffect(UShort* fb)
 {
-    UShort* fb = GetFrameBuffer();
     for (int y = 400; y < HEIGHT - 2; y++) {
         for (int x = 0; x < WIDTH; x++) {
             UShort red, green, blue;
@@ -119,14 +112,26 @@ fireEffect()
 #define GREENDEC 10
 #define BLUEDEC 150
             if (red > REDDEC) {
-                red -= REDDEC; else red = 0;
+                red -= REDDEC;
             }
+            else {
+                red = 0;
+            }
+
             if (green > GREENDEC) {
-                green -= GREENDEC; else green = 0;
+                green -= GREENDEC;
             }
+            else {
+                green = 0;
+            }
+
             if (blue > BLUEDEC) {
-                blue -= BLUEDEC; else blue = 0;
+                blue -= BLUEDEC;
             }
+            else {
+                blue = 0;
+            }
+
             red /= 4; green /= 4; blue /= 4;
             
             // And write the new pixel
@@ -161,8 +166,8 @@ server_main(int argc, char* argv[], int stat)
     vMode = vbe.GetVideoMode(2);
 
     for (;;) {
-        fireRoot();
-        fireEffect();
+        fireRoot((UShort*)vbe.GetFrameBuffer());
+        fireEffect((UShort*)vbe.GetFrameBuffer());
     }
 
     vbe.Finalize();

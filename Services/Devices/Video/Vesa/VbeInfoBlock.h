@@ -46,8 +46,8 @@
 /**
  * Address to which we want to map the linear frame buffer.
  */
-#define IOMAP_START     0x10000000UL
-#define VBE_LFB_ADDRESS IOMAP_START
+//#define IOMAP_START     0x10000000UL
+//#define VBE_LFB_ADDRESS IOMAP_START
 
 /**
  * The vbe info block, as we find it in memory.

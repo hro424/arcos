@@ -16,7 +16,20 @@ private:
 
     UInt                _num_modes;
 
+    /**
+     * Linear frame buffer base address
+     */
+    addr_t              _lfb_base;
+
+    /**
+     * Number of pages for LFB
+     */
+    size_t              _lfb_pages;
+
     stat_t MapLFBPage(L4_Word_t physaddress, L4_Word_t spaceaddress);
+
+    void AllocateLFB(VideoMode* mode);
+    void ReleaseLFB();
 
 public:
     /**
@@ -38,6 +51,8 @@ public:
      * Obtains the current video mode.
      */
     const VideoMode* GetVideoMode(UInt n) { return _video_mode[n]; }
+
+    addr_t GetFrameBuffer() { return _lfb_base; }
 
     /**
      * Displays the information of the VBE interface.

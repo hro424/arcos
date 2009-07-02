@@ -1,6 +1,7 @@
 
 #include <Debug.h>
 #include <System.h>
+#include <MemoryManager.h>
 #include <PageAllocator.h>
 #include "Vbe.h"
 #include "VbeInfoBlock.h"
@@ -45,6 +46,25 @@ Vbe::MapLFBPage(L4_Word_t physaddress, L4_Word_t spaceaddress)
     return ERR_NONE;
 }
 
+void
+Vbe::AllocateLFB(VideoMode* mode)
+{
+    _lfb_pages = (mode->xres() * mode->yres() * mode->bpp() *
+                  mode->numberOfPages()) / PAGE_SIZE;
+
+    _lfb_base = palloc_shm(_lfb_pages, L4_Myself(), L4_ReadWriteOnly);
+    //_lfb_base = palloc(_lfb_pages);
+    DOUT("Allocate LFB @ %.8lX %u pages\n", _lfb_base, _lfb_pages);
+}
+
+void
+Vbe::ReleaseLFB()
+{
+    if (_lfb_base != 0) {
+        pfree(_lfb_base, _lfb_pages);
+    }
+}
+
 stat_t
 Vbe::SetVideoMode(UInt n) {
     ENTER;
@@ -68,24 +88,27 @@ Vbe::SetVideoMode(UInt n) {
     L4_Word_t lfb_phys = mode->lfbPhysicalAddress();
     DOUT("Map LFB page @ %.8lX\n", lfb_phys);
 
-    UInt nbPages = (mode->xres() * mode->yres() * mode->bpp() * 
-            mode->numberOfPages()) / PAGE_SIZE;
+    ReleaseLFB();
 
-    if (lfb_virt != 0) {
-        pfree(lfb_virt);
-    }
+    AllocateLFB(mode);
 
-    lfb_virt = palloc_shm(nbPages, L4_Myself(), L4_ReadWriteOnly);
-
-    for (UInt i = 0; i < nbPages; i++) {
+    for (UInt i = 0; i < _lfb_pages; i++) {
+        /*
         stat_t err = MapLFBPage(lfb_phys + (PAGE_SIZE * i),
-                                lfb_virt + (PAGE_SIZE * i));
+                                _lfb_base + (PAGE_SIZE * i));
         if (err != ERR_NONE) {
-            pfree(lfb_virt);
+            pfree(_lfb_base);
+            return err;
+        }
+        */
+        stat_t err = Pager.Map(_lfb_base + (PAGE_SIZE * i), L4_ReadWriteOnly,
+                               lfb_phys + (PAGE_SIZE * i), L4_nilthread);
+        if (err != ERR_NONE) {
+            ReleaseLFB();
             return err;
         }
     }
-    
+
     System.Print("Set mode %dx%dx%dbpp\n", mode->xres(), mode->yres(),
                  mode->bpp());
     EXIT;
@@ -116,6 +139,9 @@ Vbe::Initialize()
         }
     }
     _num_modes = i;
+
+    _lfb_base = 0;
+    _lfb_pages = 0;
 }
 
 void

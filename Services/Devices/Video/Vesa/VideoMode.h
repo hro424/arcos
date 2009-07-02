@@ -48,7 +48,7 @@ struct RGBTriplet
     UByte   green;
     UByte   blue;
 
-    RGBTriple(UByte r, UByte g, UByte b) : red(r), green(g), blue(b) {}
+    RGBTriplet(UByte r, UByte g, UByte b) : red(r), green(g), blue(b) {}
 };
 
 
