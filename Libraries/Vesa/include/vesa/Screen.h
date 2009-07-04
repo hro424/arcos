@@ -41,43 +41,33 @@
 
 #include <Debug.h>
 #include <Types.h>
-#include <vesa/RGBTriplet.h>
+#include <Session.h>
 #include <vesa/VideoMode.h>
 #include <sys/Config.h>
 
 ///
 /// Controls the physical screen, provides routines to draw on it or to get
 /// the framebuffer for direct access.
-/// 
-/// This class is not instanciable. Instead, its singleton is made available
-/// (i.e. mapped) by the vesa server on Screen::Init() invokation. It is
-/// immediatly followed by the array of supported video modes.
 ///
+
 class Screen
 {
-private:
-    static Screen*  _self;
-
-    /**
-     * Cannot be instantiated
-     */
-    Screen();
-    Screen(const Screen& s);
-    virtual ~Screen();
-    
 protected:    
-    static const char* const    SERVER_NAME;
-    static L4_ThreadId_t        _server;
+    static const char*  SERVER_NAME;
+
+    L4_ThreadId_t       _server;
+
+    Session*            _session;
 
     ///
     /// VBE version
     ///
-    UShort  _version;
+    UShort              _version;
 
     ///
     /// Size of video memory
     ///
-    UInt    _total_memory;
+    UInt                _total_memory;
 
     /*
      * Cache the number of bytes per pixel and x resolution for the current
@@ -85,93 +75,153 @@ protected:
      */
     UByte   _bpp;
     UShort  _xres;
+
+    static const UInt   MAX_SUPPORTED_MODES = 64;
+
+    VideoMode           _vlist[MAX_SUPPORTED_MODES];
     
-    Int     _current_mode;
-    UByte   _num_modes;
+    VideoMode*          _current_mode;
+    UInt                _num_modes;
 
     ///
     /// Base address of the frame buffer (client side)
     ///
-    UByte*  _base;
+    addr_t              _fb_base;
+    UInt                _fb_pages;
 
     /**
      * Gives the offset (in bytes) to reach pixel (x,y)
      * from the framebuffer.
      */
-    UInt PixelOffset(UShort x, UShort y);
+    UInt PixelOffset(UShort x, UShort y)
+    { return (y * _current_mode->Xres + x) * _current_mode->Bpp; }
 
-    UInt GetPixel8(UShort x, UShort y);
+    UByte GetPixel8(UShort x, UShort y)
+    { return *(UByte*)(_fb_base + PixelOffset(x, y)); }
     
-    UInt GetPixel16(UShort x, UShort y);
+    UShort GetPixel16(UShort x, UShort y)
+    { return *(UShort*)(_fb_base + PixelOffset(x, y)); }
 
-    UInt GetPixel24(UShort x, UShort y);
+    UInt GetPixel24(UShort x, UShort y)
+    {
+        UInt offset = PixelOffset(x, y);
+        return (UInt)*((UShort*)(_fb_base + offset)) +
+            ((*(UByte*)(_fb_base + offset + 2)) << 16);
+    }
 
-    UInt GetPixel32(UShort x, UShort y);
+    UInt GetPixel32(UShort x, UShort y)
+    { return *((UInt*)(_fb_base + PixelOffset(x, y))); }
 
-    void PutPixel8(UShort x, UShort y, UInt pixel);
+    void PutPixel8(UShort x, UShort y, UByte pixel)
+    { *(UByte*)(_fb_base + PixelOffset(x, y)) = pixel; }
 
-    void PutPixel16(UShort x, UShort y, UInt pixel);
+    void PutPixel16(UShort x, UShort y, UShort pixel)
+    { *(UShort*)(_fb_base + PixelOffset(x, y)) = pixel; }
 
-    void PutPixel24(UShort x, UShort y, UInt pixel);
+    void PutPixel24(UShort x, UShort y, UInt pixel)
+    {
+        UInt offset = PixelOffset(x, y);
+        *(UShort*)(_fb_base + offset) = pixel & 0xffff;
+        *(UByte*)(_fb_base + offset + 2) = (pixel >> 16) & 0xff;
+    }
 
-    void PutPixel32(UShort x, UShort y, UInt pixel);
+    void PutPixel32(UShort x, UShort y, UInt pixel)
+    { *((UInt*)(_fb_base + PixelOffset(x, y))) = pixel; }
    
-    /**
-     * Set the video mode which index in the list of supported modes
-     * is given as argument.
-     */
-    stat_t SetVideoMode(UInt index);
-        
 public:
-    /**
-     * This is a client function.
-     *
-     * Initialization function. Calling this function makes the client
-     * application ready to use the VESA driver. It must be called before
-     * doing anything.
-     */
-    static stat_t Initialize();
+    Screen() : _fb_base(0), _fb_pages(0) {}
+
+    virtual ~Screen() {}
     
-    /**
-     * Returns the unique instance of screen.
-     */
-    static Screen* const GetInstance();
-    
+    stat_t Connect();
+
+    stat_t Disconnect()
+    {
+        if (_session != 0) {
+            delete _session;
+        }
+        return ERR_NONE;
+    }
+
     /**
      * Vesa major version
      */
-    UByte MajorVersion();
+    UByte GetMajorVersion() { return _version >> 8; }
 
     /**
      * Vesa minor version
      */
-    UByte MinorVersion();
+    UByte GetMinorVersion() { return _version & 0xff; }
 
     ///
     /// Obtains the total amount of video memory in bytes.
     ///
-    UInt TotalMemory();
+    UInt GetTotalMemory() { return _total_memory << 16; }
 
-    void printInfo();
-    
-    size_t GetNbSupportedModes();
+    size_t GetNumberOfSupportedModes() { return _num_modes; }
 
-    const VideoMode *const GetSupportedModes() const;
-    
+    const VideoMode* GetCurrentVideoMode()
+    {
+        return _current_mode;
+    }
+
+    const VideoMode* GetVideoModes()
+    {
+        return _vlist;
+    }
+
     /**
      * Set the video mode given as parameter
      */
-    stat_t SetVideoMode(const VideoMode *const mode);
+    stat_t SetVideoMode(const VideoMode *mode)
+    {
+        for (size_t i = 0; i < _num_modes; i++) {
+            if (mode == &_vlist[i]) {
+                L4_Word_t reg = mode->Number;
+                stat_t err = _session->Put(&reg, 1);
+                if (err == ERR_NONE) {
+                    _current_mode = (VideoMode*)mode;
+                }
+                return err;
+            }
+        }
+        return ERR_NOT_FOUND;
+    }
 
     /**
      * Try to find and set the videomode with given characteristics.
      */
-    stat_t SetVideoMode(UShort width, UShort height, UByte bpp);
+    stat_t SetVideoMode(UShort width, UShort height, UByte bpp)
+    {
+        // Parse the list of modes until we find one that suits
+        for (size_t i = 0; i < _num_modes; i++) {
+            if (_vlist[i].Xres == width && _vlist[i].Yres == height &&
+                _vlist[i].Bpp == bpp) {
+                return SetVideoMode(&_vlist[i]);
+            }
+        }
+        return ERR_NOT_FOUND;
+    }
 
-    const VideoMode *GetCurrentMode();
+    const VideoMode *GetCurrentMode() { return _current_mode; }
 
-    UByte *GetFrameBuffer();
-    
+    stat_t AllocateFrameBuffer(const VideoMode* mode);
+    stat_t AllocateFrameBuffer();
+    void ReleaseFrameBuffer();
+
+    addr_t GetFrameBuffer() { return _fb_base; }
+
+    void Print()
+    {
+        System.Print("Board supports VBE %u.%u.\nVideo memory: %luKB\n", 
+                     GetMajorVersion(), GetMinorVersion(),
+                     GetTotalMemory() >> 12);
+        System.Print(System.INFO, "Supported modes:\n");
+        for (size_t i = 0; i < _num_modes; i++) {
+            _vlist[i].Print();
+        }
+    }
+
     /**
      * Get the pixel value at position (x,y).
      * The pixel is returned in the current video mode's format.
@@ -197,7 +247,8 @@ public:
      * This is very slow. Applications looking for performance should
      * use direct frame buffer access instead.
      */
-    RGBTriplet GetPixelRGB(UShort x, UShort y);
+    RGBTriplet GetPixelRGB(UShort x, UShort y)
+    { return GetCurrentMode()->PixelToRGB(GetPixel(x, y)); }
     
     /**
      * Put the given pixel at position (x,y).
@@ -206,73 +257,11 @@ public:
      * This is very slow. Applications looking for performance should
      * use direct frame buffer access instead.
      */
-    void PutPixelRGB(UShort x, UShort y, const RGBTriplet& pixel);
+    void PutPixelRGB(UShort x, UShort y, RGBTriplet& pixel)
+    { PutPixel(x, y, GetCurrentMode()->RGBToPixel(pixel)); }
 
-    stat_t Connect();
-    stat_t Disconnect();
-    stat_t Open();
-    stat_t Close();
 };
 
-
-inline UByte
-Screen::MajorVersion()
-{
-    return _version >> 8;
-}
-
-inline UByte
-Screen::MinorVersion()
-{
-    return _version & 0xff;
-}
-
-inline UInt
-Screen::TotalMemory()
-{
-    return _total_memory << 16;
-}
-
-inline size_t
-Screen::GetNbSupportedModes()
-{
-    return _num_modes;
-}
-
-inline const VideoMode* const
-Screen::GetSupportedModes() const
-{
-    /**
-     * The supported modes are stored right after the intance of screen.
-     */
-    return (const VideoMode* const)(this + 1);
-}
-
-inline const VideoMode*
-Screen::GetCurrentMode()
-{
-    ENTER;
-    return &GetSupportedModes()[_current_mode];
-}
-
-inline UByte*
-Screen::GetFrameBuffer()
-{
-    return _base;
-}
-
-inline RGBTriplet
-Screen::GetPixelRGB(UShort x, UShort y)
-{
-    return GetCurrentMode()->PixelToRGB(GetPixel(x, y));
-}
-
-inline void
-Screen::PutPixelRGB(UShort x, UShort y, RGBTriplet pixel)
-{
-    ENTER;
-    PutPixel(x, y, GetCurrentMode()->RGBToPixel(pixel));
-}
 
 #endif // ARC_VESASCREEN_H_
 

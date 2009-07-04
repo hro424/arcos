@@ -103,7 +103,5 @@ struct ModeInfoBlock {
     
 } __attribute__((packed));
 
-stat_t ReadModeInfoBlock(ModeInfoBlock* block, UInt number);
-
 #endif /*MODEINFOBLOCK_H_*/
 

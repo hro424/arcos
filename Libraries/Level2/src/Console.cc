@@ -162,11 +162,13 @@ ConsoleWriter::ConsoleWriter()
         return;
     }
 
-    _session = new Session(server);
+    _session = new Session();
     if (_session == 0) {
         FATAL("Failed to construct Session\n");
         return;
     }
+
+    _session->Connect(server);
 
     if (!_session->IsConnected()) {
         delete _session;

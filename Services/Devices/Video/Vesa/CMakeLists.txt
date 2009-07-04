@@ -45,11 +45,15 @@
 #INCLUDE(${CMAKE_SOURCE_DIR}/Tools/CMake/ArcServer.cmake)
 
 include_directories(
+    ${CMAKE_SOURCE_DIR}/Libraries/Vesa/include
+    ${CMAKE_SOURCE_DIR}/Libraries/SelfHealing/include
+    ${CMAKE_SOURCE_DIR}/Libraries/L4/include
+    ${CMAKE_SOURCE_DIR}/Libraries/Arc/include
     ${CMAKE_SOURCE_DIR}/Libraries/X86Emu/include
     ${CMAKE_SOURCE_DIR}/Libraries/C/include)
 
 set(MODULE_NAME vesa)
-list(APPEND LIBS x86emu sys)
+list(APPEND LIBS x86emu psession video)
 
 add_definitions(-DNO_SYS_HEADERS)
 add_definitions(-DSYS_DEBUG)

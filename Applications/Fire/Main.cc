@@ -48,39 +48,33 @@ main()
 {
     ENTER;
 
-    // First initialize the VESA driver
-    // Frame buffer is not mapped yet at this moment.
-    if (Screen::Initialize() != ERR_NONE) {
-        return 1;
-    }
+    Screen screen;
+    screen.Connect();
 
-    Screen* const screen = Screen::GetInstance();
     // Map the frame buffer.
-    if (screen->SetVideoMode(640, 480, 16) != ERR_NONE) {
+    if (screen.SetVideoMode(640, 480, 16) != ERR_NONE) {
         System.Print(System.ERROR, "Cannot set video mode!\n");
-        screen->printInfo();
+        screen.Print();
         return ERR_NOT_FOUND;
     }
     
-    DOUT("frame buffer @ %p\n", screen->GetFrameBuffer());
-    const VideoMode* const vMode = screen->GetCurrentMode();
-    vMode->displayInfo();
+    screen.AllocateFrameBuffer();
+    DOUT("frame buffer @ %p\n", screen.GetFrameBuffer());
+
+    const VideoMode* vmode = screen->GetCurrentVideoMode();
+    vmode->Print();
     
     UShort movingFirePos = 0;
     UShort movingFireWidth = 50;
     UByte movingFireDir = 1;
     while (1) {
-        DOUT("\n");
-        fireRoot(0, vMode->yres() - 2, vMode->xres(), 2);
-        DOUT("\n");
+        fireRoot(0, vmode->yres() - 2, vmode->xres(), 2);
         fireRoot(movingFirePos, 120, movingFireWidth, 2);
-        DOUT("\n");
-        fireEffect(0, 0, vMode->xres(), vMode->yres() - 2);
-        DOUT("\n");
+        fireEffect(0, 0, vmode->xres(), vmode->yres() - 2);
         
         if (movingFireDir) {
-            if (++movingFirePos >= vMode->xres() - movingFireWidth) {
-                movingFirePos = vMode->xres() - movingFireWidth - 1;
+            if (++movingFirePos >= vmode->xres() - movingFireWidth) {
+                movingFirePos = vmode->xres() - movingFireWidth - 1;
                 movingFireDir = 0;
             }
         }

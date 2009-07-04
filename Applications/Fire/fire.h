@@ -39,10 +39,8 @@
 
 #include <Types.h>
 
-void fireRoot(const UShort startx, const UShort starty, const UShort width,
-              const UShort height);
+void fireRoot(UShort startx, UShort starty, UShort width, UShort height);
 
-void fireEffect(const UShort startx, const UShort starty, const UShort width, 
-                const UShort height);
+void fireEffect(UShort startx, UShort starty, UShort width, UShort height);
 
 #endif /*FIRE_H_*/

@@ -68,10 +68,12 @@ Disk::Initialize(const char *name, UInt iface, UInt dev)
 
     _iface = iface;
     _dev = dev;
-    _session = new Session(_tid);
+    _session = new Session();
     if (_session == 0) {
         return ERR_OUT_OF_MEMORY;
     }
+
+    _session->Connect(_tid);
 
     if (!_session->IsConnected()) {
         return ERR_UNKNOWN;

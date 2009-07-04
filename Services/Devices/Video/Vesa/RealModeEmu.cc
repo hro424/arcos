@@ -38,7 +38,7 @@
 #include <PageAllocator.h>
 #include "RealModeEmu.h"
 
-addr_t _rme_base;
+addr_t RME_BASE;
 
 static const L4_Word8_t *codebegin, *codeend;
 
@@ -53,20 +53,19 @@ __asmbits(void)
 	             "hlt");
 }
 
-addr_t InitializeRealModeEmulator() {
-    _rme_base = palloc(X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
-    if (x86emu_init(_rme_base) != ERR_NONE) {
-        pfree(_rme_base, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
-        return 0;
+stat_t InitializeRealModeEmulator() {
+    RME_BASE = palloc(X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
+    if (x86emu_init(RME_BASE) != ERR_NONE) {
+        pfree(RME_BASE, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
+        return ERR_FATAL;
     }
     REAL_MODE_ASM_BEGIN(int10h, codebegin);
     REAL_MODE_ASM_END(int10h, codeend);
-
-    return _rme_base;
+    return ERR_NONE;
 }
 
 void CleanupRealModeEmulator() {
-    pfree(_rme_base, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
+    pfree(RME_BASE, X86EMU_MAIN_MEM_SIZE / PAGE_SIZE);
     x86emu_cleanup();
 }
 

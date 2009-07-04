@@ -46,7 +46,7 @@ struct RealModeAddress {
 
     UShort segment() const { return _segment; }
     UShort offset() const { return _offset; }
-    addr_t address() const { return _rme_base + (_segment << 4) + _offset; }
+    addr_t address() const { return RME_BASE + (_segment << 4) + _offset; }
 
 } __attribute__((packed));
 

@@ -97,7 +97,5 @@ struct VbeInfoBlock {
 
 } __attribute__((packed));
 
-stat_t ReadVbeInfoBlock(VbeInfoBlock* block);
-
 #endif /*VBEINFOBLOCK_H_*/
 

@@ -38,9 +38,11 @@
 #ifndef ARC_SESSION_H
 #define ARC_SESSION_H
 
+#include <Ipc.h>
 #include <Types.h>
 #include <l4/types.h>
 #include <l4/message.h>
+#include <sys/Config.h>
 
 class Session
 {
@@ -77,40 +79,50 @@ protected:
 public:
     static const size_t DEFAULT_SHM_PAGES = 1;
 
-    ///
-    /// Establishes a session with the peer.
-    ///
-    Session(L4_ThreadId_t peer);
+    Session() : _peer(L4_nilthread), _shm(0) {}
 
     ///
     /// Destroys the session.
     ///
     virtual ~Session();
 
-    virtual Bool IsConnected();
+    ///
+    /// Establishes a session with the peer.
+    ///
+    stat_t Connect(L4_ThreadId_t peer, L4_Word_t* recv_regs, size_t count);
 
-    virtual size_t Size();
+    stat_t Connect(L4_ThreadId_t peer) { return Connect(peer, 0, 0); }
+
+    virtual Bool IsConnected()
+    { return L4_IsThreadNotEqual(_peer, L4_nilthread); }
+
+    virtual size_t Size() { return _size * PAGE_SIZE; }
 
     ///
     /// Obtains the base address of the shared memory.
     ///
-    virtual addr_t GetBaseAddress();
+    virtual addr_t GetBaseAddress() { return _shm; }
 
-    virtual stat_t Begin(L4_Word_t* send_regs = 0, size_t count = 0);
+    virtual stat_t Begin(L4_Word_t* send_regs = 0, size_t count = 0)
+    { return Xfer(MSG_SESSION_BEGIN, send_regs, count); }
 
     virtual stat_t Begin(L4_Word_t* send_regs, size_t scount,
-                         L4_Word_t* recv_regs, size_t rcount);
+                         L4_Word_t* recv_regs, size_t rcount)
+    { return Xfer(MSG_SESSION_BEGIN, send_regs, scount, recv_regs, rcount); }
 
-    virtual stat_t End(L4_Word_t* send_regs = 0, size_t count = 0);
+    virtual stat_t End(L4_Word_t* send_regs = 0, size_t count = 0)
+    { return Xfer(MSG_SESSION_END, send_regs, count); }
 
     virtual stat_t Put(L4_Word_t* send_regs, size_t scount,
-                       L4_Word_t* recv_regs, size_t rcount);
+                       L4_Word_t* recv_regs, size_t rcount)
+    { return Xfer(MSG_SESSION_PUT, send_regs, scount, recv_regs, rcount); }
 
     ///
     /// Notifies the peer that the shared memory is updated.  Waits for a
     /// peer's reply.
     ///
-    virtual stat_t Put(L4_Word_t* send_regs, size_t count);
+    virtual stat_t Put(L4_Word_t* send_regs, size_t count)
+    { return Xfer(MSG_SESSION_PUT, send_regs, count); }
 
     ///
     /// Notifies the peer that the shared memory is updated.
@@ -118,12 +130,14 @@ public:
     virtual stat_t PutAsync(L4_Word_t* send_regs, size_t count);
 
     virtual stat_t Get(L4_Word_t* send_regs, size_t scount,
-                       L4_Word_t* recv_regs, size_t rcount);
+                       L4_Word_t* recv_regs, size_t rcount)
+    { return Xfer(MSG_SESSION_GET, send_regs, scount, recv_regs, rcount); }
 
     ///
     /// Waits for the peer updates the shared memory.
     ///
-    virtual stat_t Get(L4_Word_t* send_regs, size_t count);
+    virtual stat_t Get(L4_Word_t* send_regs, size_t count)
+    { return Xfer(MSG_SESSION_GET, send_regs, count); }
 };
 
 #endif // ARC_SESSION_H

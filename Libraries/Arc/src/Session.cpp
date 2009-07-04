@@ -63,7 +63,8 @@ Session::Disconnect(L4_ThreadId_t tid, addr_t dest)
     }
 }
 
-Session::Session(L4_ThreadId_t peer) : _peer(L4_nilthread), _shm(0)
+stat_t
+Session::Connect(L4_ThreadId_t peer, L4_Word_t* regs, size_t count)
 {
     ENTER;
     stat_t      err;
@@ -74,7 +75,7 @@ Session::Session(L4_ThreadId_t peer) : _peer(L4_nilthread), _shm(0)
     L4_Set_Label(&msg, MSG_SESSION_CONNECT);
     err = Ipc::Call(peer, &msg, &msg);
     if (err != ERR_NONE) {
-        return;
+        return err;
     }
     _dest = L4_Get(&msg, 0);
     _size = L4_Get(&msg, 1);
@@ -83,7 +84,7 @@ Session::Session(L4_ThreadId_t peer) : _peer(L4_nilthread), _shm(0)
     _shm = palloc_shm(_size, peer, L4_ReadWriteOnly);
     if (_shm == 0) {
         Disconnect(peer, _dest);
-        return;
+        return ERR_OUT_OF_MEMORY;
     }
 
     DOUT("shm: %.8lX\n", _shm);
@@ -103,13 +104,24 @@ Session::Session(L4_ThreadId_t peer) : _peer(L4_nilthread), _shm(0)
             Disconnect(peer, _dest);
             pfree(_shm, _size);
             _shm = 0;
-            return;
+            return err;
         }
     }
 
     _peer = peer;
 
+    if (regs != 0) {
+        size_t len = L4_UntypedWords(msg.tag);
+        if (len < count) {
+            count = len;
+        }
+        for (size_t i = 0; i < count; i++) {
+            regs[i] = L4_Get(&msg, i + 1);
+        }
+    }
+
     EXIT;
+    return ERR_NONE;
 }
 
 Session::~Session()
@@ -123,24 +135,6 @@ Session::~Session()
         pfree(_shm, _size);
     }
     EXIT;
-}
-
-Bool
-Session::IsConnected()
-{
-    return L4_IsThreadNotEqual(_peer, L4_nilthread);
-}
-
-addr_t
-Session::GetBaseAddress()
-{
-    return _shm;
-}
-
-size_t
-Session::Size()
-{
-    return _size * PAGE_SIZE;
 }
 
 stat_t
@@ -202,49 +196,6 @@ Session::Xfer(L4_Word_t label, L4_Word_t* sregs, size_t scount,
         }
     }
     return ERR_NONE;
-}
-
-stat_t
-Session::Begin(L4_Word_t* regs, size_t count)
-{
-    return Xfer(MSG_SESSION_BEGIN, regs, count);
-}
-
-stat_t
-Session::Begin(L4_Word_t* sregs, size_t scount,
-               L4_Word_t* rregs, size_t rcount)
-{
-    return Xfer(MSG_SESSION_BEGIN, sregs, scount, rregs, rcount);
-}
-
-stat_t
-Session::End(L4_Word_t* regs, size_t count)
-{
-    return Xfer(MSG_SESSION_END, regs, count);
-}
-
-stat_t
-Session::Put(L4_Word_t* sregs, size_t scount, L4_Word_t* rregs, size_t rcount)
-{
-    return Xfer(MSG_SESSION_PUT, sregs, scount, rregs, rcount);
-}
-
-stat_t
-Session::Put(L4_Word_t* regs, size_t count)
-{
-    return Xfer(MSG_SESSION_PUT, regs, count);
-}
-
-stat_t
-Session::Get(L4_Word_t* sregs, size_t scount, L4_Word_t* rregs, size_t rcount)
-{
-    return Xfer(MSG_SESSION_GET, sregs, scount, rregs, rcount);
-}
-
-stat_t
-Session::Get(L4_Word_t* regs, size_t count)
-{
-    return Xfer(MSG_SESSION_GET, regs, count);
 }
 
 stat_t

@@ -50,10 +50,12 @@ FileStream::Connect(L4_ThreadId_t tid)
 {
     ENTER;
 
-    _ss = new Session(tid);
+    _ss = new Session();
     if (_ss == 0) {
         return ERR_OUT_OF_MEMORY;
     }
+
+    _ss->Connect(tid);
 
     if (!_ss->IsConnected()) {
         delete _ss;

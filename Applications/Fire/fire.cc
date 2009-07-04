@@ -46,8 +46,7 @@ static const UShort VIVACITY = 30;
 static const UShort INTENSITY = 200;
 
 void
-fireRoot(const UShort startx, const UShort starty, const UShort width,
-         const UShort height)
+fireRoot(UShort startx, UShort starty, UShort width, UShort height)
 {
     ENTER;
     Screen *const screen = Screen::GetInstance();
@@ -72,8 +71,7 @@ fireRoot(const UShort startx, const UShort starty, const UShort width,
 }
 
 void
-fireEffect(const UShort startx, const UShort starty, const UShort width, 
-           const UShort height)
+fireEffect(UShort startx, UShort starty, UShort width, UShort height)
 {
     Screen *const screen = Screen::GetInstance();
     const VideoMode *const vMode = screen->GetCurrentMode();

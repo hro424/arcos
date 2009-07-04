@@ -39,11 +39,6 @@
 
 #include "x86emu.h"
 
-/**
- * Pointer to the real-mode emulated memory.
- */
-extern addr_t _rme_base;
-
 /*
  * These macros interpret the return of VBE functions.
  */
@@ -51,11 +46,13 @@ extern addr_t _rme_base;
 #define VESA_VBE_FUNCTION_SUCCESSFUL(X) (((X & 0xff00) >> 8) == 0)
 #define VESA_VBE_SUCCESS(X) (VESA_VBE_FUNCTION_SUPPORTED(X) && VESA_VBE_FUNCTION_SUCCESSFUL(X))
 
+extern addr_t RME_BASE;
+
 /**
  * Initializes the x86 real-mode emulation layer. Must be called before
  * anything!
  */
-addr_t InitializeRealModeEmulator();
+stat_t InitializeRealModeEmulator();
 
 /**
  * Cleanup the x86 real-mode emulation layer.

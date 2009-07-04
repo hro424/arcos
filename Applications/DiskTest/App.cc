@@ -154,10 +154,12 @@ main()
     }
 
     // Create a shared space
-    ss = new Session(tid);
+    ss = new Session();
     if (ss == 0) {
         return 1;
     }
+
+    ss->Connect(tid);
 
     if (ss->IsConnected()) {
         DOUT("new session was successfully created\n");

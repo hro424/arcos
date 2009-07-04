@@ -35,31 +35,3 @@
 /// Defines the VbeInfoBlock VESA VBE 2.0 structure.
 ///
 
-#include <Debug.h>
-#include <System.h>
-#include <String.h>
-
-#include "VbeInfoBlock.h"
-#include "RealModeEmu.h"
-
-stat_t
-ReadVbeInfoBlock(VbeInfoBlock* block)
-{
-    addr_t  block_addr;
-
-    // First get the address of the VBE info block.
-    X86EMU_SETREG(AX, 0x4f00);
-    X86EMU_SETREG(ES, X86EMU_DATA_AREA_OFFSET >> 4);
-    X86EMU_SETREG(DI, 0);
-    invokeInt10();
-    if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
-        System.Print("vesa: Cannot query VBE capabalities!\n");
-        return ERR_NOT_FOUND;
-    }
- 
-    memset(block, 0, sizeof(VbeInfoBlock));
-    block_addr = _rme_base + X86EMU_DATA_AREA_OFFSET;
-    memcpy(block, (const void*)block_addr, sizeof(VbeInfoBlock));
-    return ERR_NONE;
-}
-
