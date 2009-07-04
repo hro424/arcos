@@ -51,9 +51,12 @@ Vbe::GetModeInfoBlock(UInt number)
 stat_t
 Vbe::Initialize()
 {
+    ENTER;
     if (InitializeRealModeEmulator() != ERR_NONE) {
         return ERR_FATAL;
     }
+
+    DOUT("RME initialized.\n");
 
     ReadVbeInfoBlock(&_vbe_info);
 
@@ -76,6 +79,7 @@ Vbe::Initialize()
     }
     _num_modes = i;
 
+    EXIT;
     return ERR_NONE;
 }
 
@@ -115,6 +119,8 @@ Vbe::CreateVideoMode(UShort number, const ModeInfoBlock *info)
     vmode->RedLoss = 0xff >> (8 - vmode->RedMaskSize) << (8 - vmode->RedMaskSize);
     vmode->GreenLoss = 0xff >> (8 - vmode->GreenMaskSize) << (8 - vmode->GreenMaskSize);
     vmode->BlueLoss = 0xff >> (8 - vmode->BlueMaskSize) << (8 - vmode->BlueMaskSize);
+
+    return vmode;
 }
 
 

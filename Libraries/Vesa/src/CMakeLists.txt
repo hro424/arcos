@@ -35,6 +35,10 @@
 include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/System/include
     ${CMAKE_SOURCE_DIR}/Libraries/Arc/include)
+
+add_definitions(-DSYS_DEBUG)
+#add_definitions(-DSYS_DEBUG_CALL)
+
 set(LIB_NAME video)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Library.cmake)
 

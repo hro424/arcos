@@ -54,11 +54,21 @@ public:
     {
         ENTER;
 
+        /*
         if (n >= MAX_SUPPORTED_MODES) {
             return ERR_INVALID_ARGUMENTS;
         }
+        */
 
-        VideoMode* mode = _video_mode[n];
+        VideoMode* mode = 0;
+        for (UInt i = 0; i < _num_modes; i++) {
+            if (_video_mode[i]->Number == n) {
+                mode = _video_mode[i];
+            }
+        }
+        if (mode == 0) {
+            return ERR_NOT_FOUND;
+        }
 
         // Set the video mode using BIOS functions
         X86EMU_SETREG(AX, 0x4f02);
@@ -92,6 +102,7 @@ public:
     void Print()
     {
         _vbe_info.Print();
+
         for (UInt i = 0; i < _num_modes; i++) {
             _video_mode[i]->Print();
         }

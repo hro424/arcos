@@ -61,12 +61,14 @@ public:
 
     virtual stat_t Initialize(Int argc, char* argv[])
     {
+        ENTER;
         if (_vbe.Initialize() != ERR_NONE) {
             return ERR_FATAL;
         }
 
         _vbe.Print();
 
+        EXIT;
         return ERR_NONE;
     }
 
@@ -95,8 +97,6 @@ VbeServer::HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     L4_Word_t   reg[5];
     addr_t      shm = shmalloc(Session::DEFAULT_SHM_PAGES);
 
-    DOUT("shm allocate @ %.8lX\n", shm);
-
     if (shm == 0) {
         return ERR_OUT_OF_MEMORY;
     }
@@ -121,8 +121,8 @@ VbeServer::HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
         memcpy((void*)(shm + sizeof(VideoMode) * i), vobj, sizeof(VideoMode));
     }
     reg[2] = _vbe.Info()->vbe_version;
-    reg[3] = nmode;
-    reg[4] = _vbe.Info()->GetTotalMemory();
+    reg[3] = _vbe.Info()->GetTotalMemory();
+    reg[4] = nmode;
 
     L4_Put(&msg, 0, 5, reg, 0, 0);
     EXIT;
@@ -132,20 +132,20 @@ VbeServer::HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 stat_t
 VbeServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 {
+    ENTER;
     SessionControlBlock*    c;
     L4_Word_t               base;
     L4_Word_t               mode;
 
     base = L4_Get(&msg, 0);
     c = Search(tid, base);
-    if (c == 0 || c->data == static_cast<word_t>(-1)) {
+    if (c == 0) {
         L4_Clear(&msg);
         L4_Set_Label(&msg, ERR_NOT_FOUND);
         return ERR_NONE;
     }
 
     mode = L4_Get(&msg, 1);
-    DOUT("Set video mode: %u\n", mode);
 
     if (_vbe.SetVideoMode(mode) != ERR_NONE) {
         System.Print("Cannot set video mode!\n");
@@ -155,6 +155,7 @@ VbeServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     __current_vmode = mode;
 
     L4_Clear(&msg);
+    EXIT;
     return ERR_NONE;
 }
 

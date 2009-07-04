@@ -39,18 +39,101 @@
 #include <Debug.h>
 #include <Types.h>
 #include <System.h>
+#include <Random.h>
 #include <vesa/Screen.h>
+#include <vesa/VideoMode.h>
 
-#include "fire.h"
+//#include "fire.h"
 
-Screen*     _screen;
-const VideoMode*  _vMode;
+Screen*             _screen;
+const VideoMode*    _vMode;
+
+#define WIDTH 640
+#define HEIGHT 480
+
+#define PUTPIXEL(X,Y,COL) fb[(Y) * WIDTH + (X)] = (COL)
+#define GETPIXEL(X,Y) fb[(Y) * WIDTH + (X)]
+
+///// FIRE
+
+#define RESISTANCE 50
+#define VIVACITY 100
+#define INTENSITY 200
+
+void
+MakeFireRoot(UShort *fb) {
+    for (int j = HEIGHT - 2; j < HEIGHT; j++) {
+        // First light some new pixels
+        for (int i = 0; i < VIVACITY; i++) {
+            int pos = rand() % WIDTH;
+            int color = INTENSITY + (rand() % (255 - INTENSITY));
+            PUTPIXEL(pos, j, _vMode->RGBToPixel(RGBTriplet(color, color, color)));
+        }
+        // Then shut other pixels down
+        for (int i = 0; i < RESISTANCE; i++) {
+            int pos = rand() % WIDTH;
+            PUTPIXEL(pos, j, 0);
+        }
+    }
+}
+
+void
+MakeFireEffect(UShort *fb) {
+    for (int y = 400; y < HEIGHT - 2; y++)
+        for (int x = 0; x < WIDTH; x++) {
+            UShort red, green, blue;
+            
+            // Lower pixel
+            RGBTriplet pixel = _vMode->PixelToRGB(GETPIXEL(x, y + 1));
+            red = pixel.red;
+            green = pixel.green;
+            blue = pixel.blue;
+            
+            // 2nd lower pixel
+            pixel = _vMode->PixelToRGB(GETPIXEL(x, y + 2));
+            red += pixel.red;
+            green += pixel.green;
+            blue += pixel.blue;
+            
+            // Lower left pixel
+            if (x > 0) {
+                pixel = _vMode->PixelToRGB(GETPIXEL(x - 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
+            }
+            
+            // Lower right pixel
+            if (x < WIDTH - 1) {
+                pixel = _vMode->PixelToRGB(GETPIXEL(x + 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
+            }
+            
+            // Now fix the values
+#define REDDEC 2
+#define GREENDEC 10
+#define BLUEDEC 150
+            if (red > REDDEC) red -= REDDEC; else red = 0;
+            if (green > GREENDEC) green -= GREENDEC; else green = 0;
+            if (blue > BLUEDEC) blue -= BLUEDEC; else blue = 0;
+            red /= 4; green /= 4; blue /= 4;
+            
+            // And write the new pixel
+            PUTPIXEL(x, y, _vMode->RGBToPixel(RGBTriplet(red, green, blue)));
+        }
+}
+
+///// FIRE
+
 
 int
 main()
 {
     ENTER;
 
+    addr_t fb;
     Screen screen;
     if (screen.Connect() != ERR_NONE) {
         return ERR_FATAL;
@@ -59,21 +142,27 @@ main()
     // Map the frame buffer.
     if (screen.SetVideoMode(640, 480, 16) != ERR_NONE) {
         System.Print(System.ERROR, "Cannot set video mode!\n");
-        screen.Print();
         return ERR_NOT_FOUND;
     }
     
-    screen.AllocateFrameBuffer();
-    DOUT("frame buffer @ %p\n", screen.GetFrameBuffer());
+    if (screen.AllocateFrameBuffer() != ERR_NONE) {
+        System.Print(System.ERROR, "Cannot allocate frame buffer!\n");
+        return ERR_FATAL;
+    }
+    fb = screen.GetFrameBuffer();
+    DOUT("frame buffer @ %p\n", fb);
 
     _screen = &screen;
     _vMode = screen.GetCurrentVideoMode();
-    _vMode->Print();
+    DOUT("current mode %lX\n", _vMode->Number);
     
-    UShort movingFirePos = 0;
-    UShort movingFireWidth = 50;
-    UByte movingFireDir = 1;
+    //UShort movingFirePos = 0;
+    //UShort movingFireWidth = 50;
+    //UByte movingFireDir = 1;
     while (1) {
+        MakeFireRoot((UShort*)fb);
+        MakeFireEffect((UShort*)fb);
+        /*
         fireRoot(0, _vMode->Yres - 2, _vMode->Xres, 2);
         fireRoot(movingFirePos, 120, movingFireWidth, 2);
         fireEffect(0, 0, _vMode->Xres, _vMode->Yres - 2);
@@ -90,6 +179,7 @@ main()
                 movingFireDir = 1;
             }
         }
+        */
     }
     
     EXIT;

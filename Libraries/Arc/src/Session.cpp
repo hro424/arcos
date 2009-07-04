@@ -116,7 +116,7 @@ Session::Connect(L4_ThreadId_t peer, L4_Word_t* regs, size_t count)
             count = len;
         }
         for (size_t i = 0; i < count; i++) {
-            regs[i] = L4_Get(&msg, i + 1);
+            regs[i] = L4_Get(&msg, i + 2);
         }
     }
 

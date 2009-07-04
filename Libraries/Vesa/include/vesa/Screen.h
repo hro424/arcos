@@ -175,13 +175,17 @@ public:
      */
     stat_t SetVideoMode(const VideoMode *mode)
     {
+        ENTER;
         for (size_t i = 0; i < _num_modes; i++) {
             if (mode == &_vlist[i]) {
                 L4_Word_t reg = mode->Number;
+                DOUT("set mode %lx\n", reg);
                 stat_t err = _session->Put(&reg, 1);
                 if (err == ERR_NONE) {
+                    DOUT("current mode %lx\n", mode->Number);
                     _current_mode = (VideoMode*)mode;
                 }
+                EXIT;
                 return err;
             }
         }
@@ -216,7 +220,7 @@ public:
         System.Print("Board supports VBE %u.%u.\nVideo memory: %luKB\n", 
                      GetMajorVersion(), GetMinorVersion(),
                      GetTotalMemory() >> 12);
-        System.Print(System.INFO, "Supported modes:\n");
+        System.Print("Supported modes:\n");
         for (size_t i = 0; i < _num_modes; i++) {
             _vlist[i].Print();
         }

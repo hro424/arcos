@@ -34,9 +34,6 @@
 /// @since  January 2008
 /// 
 
-
-#define SYS_DEBUG
-
 #include <Debug.h>
 #include <vesa/Screen.h>
 #include <Ipc.h>
@@ -46,7 +43,7 @@
 #include <String.h>
 #include <System.h>
 
-const char* Screen::SERVER_NAME = "vesa";
+const char* Screen::SERVER_NAME = "system/vesa";
 
 stat_t
 Screen::Connect()
@@ -98,6 +95,7 @@ Screen::Connect()
 stat_t
 Screen::AllocateFrameBuffer(const VideoMode* mode)
 {
+    ENTER;
     stat_t err;
 
     if (mode == 0) {
@@ -108,15 +106,20 @@ Screen::AllocateFrameBuffer(const VideoMode* mode)
         return ERR_BUSY;
     }
 
-    _fb_pages = mode->NumberOfPages;
+    _fb_pages = mode->NumberOfPages * mode->Xres * mode->Yres * mode->Bpp / PAGE_SIZE;
     _fb_base = palloc_shm(_fb_pages, L4_Myself(), L4_ReadWriteOnly);
     if (_fb_base == 0) {
         _fb_pages = 0;
         return ERR_OUT_OF_MEMORY;
     }
 
-    err = Pager.Map(_fb_base, L4_ReadWriteOnly,
-                    mode->LFBAddress, L4_nilthread);
+    for (size_t i = 0; i < _fb_pages; i++) {
+        err = Pager.Map(_fb_base + PAGE_SIZE * i, L4_ReadWriteOnly,
+                        mode->LFBAddress + PAGE_SIZE * i, L4_nilthread);
+        if (err != ERR_NONE) {
+            break;
+        }
+    }
     if (err != ERR_NONE) {
         pfree(_fb_base, _fb_pages);
         _fb_base = 0;
@@ -124,6 +127,7 @@ Screen::AllocateFrameBuffer(const VideoMode* mode)
         return err;
     }
 
+    EXIT;
     return ERR_NONE;
 }
 
@@ -175,6 +179,5 @@ Screen::PutPixel(UShort x, UShort y, UInt pixel)
         case 4:
             PutPixel32(x, y, pixel); return;
     }
-    EXIT;
 }
 

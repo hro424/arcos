@@ -51,8 +51,6 @@ static const UShort INTENSITY = 200;
 void
 fireRoot(UShort startx, UShort starty, UShort width, UShort height)
 {
-    ENTER;
-    
     for (UShort j = starty; j < starty + height; j++) {
         // First light some new pixels
         for (int i = 0; i < VIVACITY; i++) {
@@ -67,7 +65,6 @@ fireRoot(UShort startx, UShort starty, UShort width, UShort height)
             _screen->PutPixel(startx + pos, j, 0);
         }
     }
-    EXIT;
 }
 
 void
