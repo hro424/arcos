@@ -41,6 +41,9 @@
 #include <Types.h>
 #include <vesa/Screen.h>
 
+extern Screen*      _screen;
+extern VideoMode*   _vMode;
+
 static const UShort RESISTANCE = 30;
 static const UShort VIVACITY = 30;
 static const UShort INTENSITY = 200;
@@ -49,22 +52,19 @@ void
 fireRoot(UShort startx, UShort starty, UShort width, UShort height)
 {
     ENTER;
-    Screen *const screen = Screen::GetInstance();
     
-    for (int j = starty; j < starty + height; j++) {
+    for (UShort j = starty; j < starty + height; j++) {
         // First light some new pixels
         for (int i = 0; i < VIVACITY; i++) {
-            int pos = rand() % width;
+            UShort pos = rand() % width;
             int color = INTENSITY + (rand() % (255 - INTENSITY));
-            DOUT("screen @ %p\n", screen);
-            BREAK("call PutPixelRGB");
-            screen->PutPixelRGB(startx + pos, j,
-                                RGBTriplet(color, color, color));
+            _screen->PutPixelRGB(startx + pos, j,
+                                 RGBTriplet(color, color, color));
         }
         // Then shut other pixels down
         for (int i = 0; i < RESISTANCE; i++) {
             int pos = rand() % width;
-            screen->PutPixel(startx + pos, j, 0);
+            _screen->PutPixel(startx + pos, j, 0);
         }
     }
     EXIT;
@@ -73,52 +73,67 @@ fireRoot(UShort startx, UShort starty, UShort width, UShort height)
 void
 fireEffect(UShort startx, UShort starty, UShort width, UShort height)
 {
-    Screen *const screen = Screen::GetInstance();
-    const VideoMode *const vMode = screen->GetCurrentMode();
-    
     for (int y = starty; y < starty + height; y++) {
         for (int x = startx; x < startx + width; x++) {
             UShort red, green, blue;
             
             // Lower pixel
-            RGBTriplet pixel = vMode->PixelToRGB(screen->GetPixel(x, y + 1));
-            red = pixel.red();
-            green = pixel.green();
-            blue = pixel.blue();
+            RGBTriplet pixel = _vMode->PixelToRGB(_screen->GetPixel(x, y + 1));
+            red = pixel.red;
+            green = pixel.green;
+            blue = pixel.blue;
             
             // 2nd lower pixel
-            pixel = vMode->PixelToRGB(screen->GetPixel(x, y + 2));
-            red += pixel.red();
-            green += pixel.green();
-            blue += pixel.blue();
+            pixel = _vMode->PixelToRGB(_screen->GetPixel(x, y + 2));
+            red += pixel.red;
+            green += pixel.green;
+            blue += pixel.blue;
             
             // Lower left pixel
             if (x > startx) {
-                pixel = vMode->PixelToRGB(screen->GetPixel(x - 1, y + 1));
-                red += pixel.red();
-                green += pixel.green();
-                blue += pixel.blue();
+                pixel = _vMode->PixelToRGB(_screen->GetPixel(x - 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
             }
             
             // Lower right pixel
             if (x < startx + width - 1) {
-                pixel = vMode->PixelToRGB(screen->GetPixel(x + 1, y + 1));
-                red += pixel.red();
-                green += pixel.green();
-                blue += pixel.blue();
+                pixel = _vMode->PixelToRGB(_screen->GetPixel(x + 1, y + 1));
+                red += pixel.red;
+                green += pixel.green;
+                blue += pixel.blue;
             }
             
             // Now fix the values
 #define REDDEC 0
 #define GREENDEC 5
 #define BLUEDEC 100
-            if (red > REDDEC) red -= REDDEC; else red = 0;
-            if (green > GREENDEC) green -= GREENDEC; else green = 0;
-            if (blue > BLUEDEC) blue -= BLUEDEC; else blue = 0;
+            if (red > REDDEC) {
+                red -= REDDEC; 
+            }
+            else {
+                red = 0;
+            }
+
+            if (green > GREENDEC) {
+                green -= GREENDEC;
+            }
+            else {
+                green = 0;
+            }
+
+            if (blue > BLUEDEC) {
+                blue -= BLUEDEC;
+            }
+            else {
+                blue = 0;
+            }
+
             red /= 4; green /= 4; blue /= 4;
             
             // And write the new pixel
-            screen->PutPixel(x, y, vMode->RGBToPixel(RGBTriplet(red, green, blue)));
+            _screen->PutPixel(x, y, _vMode->RGBToPixel(RGBTriplet(red, green, blue)));
         }
     }
 }

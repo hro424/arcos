@@ -35,7 +35,7 @@
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/Vesa/include)
 
 set(MODULE_NAME fire)
-list(APPEND LIBS vesa0)
+list(APPEND LIBS video)
 add_definitions(-DSYS_DEBUG)
 add_definitions(-DSYS_DEBUG_CALL)
 

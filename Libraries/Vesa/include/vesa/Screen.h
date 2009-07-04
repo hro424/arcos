@@ -257,7 +257,7 @@ public:
      * This is very slow. Applications looking for performance should
      * use direct frame buffer access instead.
      */
-    void PutPixelRGB(UShort x, UShort y, RGBTriplet& pixel)
+    void PutPixelRGB(UShort x, UShort y, const RGBTriplet& pixel)
     { PutPixel(x, y, GetCurrentMode()->RGBToPixel(pixel)); }
 
 };

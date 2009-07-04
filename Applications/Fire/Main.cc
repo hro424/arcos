@@ -43,13 +43,18 @@
 
 #include "fire.h"
 
+Screen*     _screen;
+const VideoMode*  _vMode;
+
 int
 main()
 {
     ENTER;
 
     Screen screen;
-    screen.Connect();
+    if (screen.Connect() != ERR_NONE) {
+        return ERR_FATAL;
+    }
 
     // Map the frame buffer.
     if (screen.SetVideoMode(640, 480, 16) != ERR_NONE) {
@@ -61,20 +66,21 @@ main()
     screen.AllocateFrameBuffer();
     DOUT("frame buffer @ %p\n", screen.GetFrameBuffer());
 
-    const VideoMode* vmode = screen->GetCurrentVideoMode();
-    vmode->Print();
+    _screen = &screen;
+    _vMode = screen.GetCurrentVideoMode();
+    _vMode->Print();
     
     UShort movingFirePos = 0;
     UShort movingFireWidth = 50;
     UByte movingFireDir = 1;
     while (1) {
-        fireRoot(0, vmode->yres() - 2, vmode->xres(), 2);
+        fireRoot(0, _vMode->Yres - 2, _vMode->Xres, 2);
         fireRoot(movingFirePos, 120, movingFireWidth, 2);
-        fireEffect(0, 0, vmode->xres(), vmode->yres() - 2);
+        fireEffect(0, 0, _vMode->Xres, _vMode->Yres - 2);
         
         if (movingFireDir) {
-            if (++movingFirePos >= vmode->xres() - movingFireWidth) {
-                movingFirePos = vmode->xres() - movingFireWidth - 1;
+            if (++movingFirePos >= _vMode->Xres - movingFireWidth) {
+                movingFirePos = _vMode->Xres - movingFireWidth - 1;
                 movingFireDir = 0;
             }
         }

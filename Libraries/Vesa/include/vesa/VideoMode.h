@@ -73,7 +73,7 @@ struct VideoMode {
     
     addr_t  LFBAddress;
 
-    UInt RGBToPixel(RGBTriplet& rgb) const
+    UInt RGBToPixel(const RGBTriplet& rgb) const
     {
         UInt pixel = (rgb.red >> (8 - RedMaskSize)) << RedFieldPos;
         pixel |= (rgb.green >> (8 - GreenMaskSize)) << GreenFieldPos;
