@@ -596,18 +596,43 @@ HandleNsRemove(L4_Msg_t* msg)
 static stat_t
 HandleNsList(L4_Msg_t* msg)
 {
+#define MAX_REGS        16
+#define MAX_STRLEN      (MAX_REGS * 4)
+
+    L4_Word_t   reg[MAX_REGS + 2];
+    NameEntry*  e;
+    Space*      s;
+    L4_Word_t   i;
+    size_t      len;
     Iterator<NameEntry*>& it = _ns.GetList();
 
-    System.Print("     TID    PAGER NAME\n");
-    while (it.HasNext()) {
-        Space*      s;
-        NameEntry*  e = it.Next();
-        FindTask(e->tid, &s);
-        System.Print("%.8lX %.8lX %s\n",
-                     e->tid.raw, s->GetPager().raw, e->name);
+    i = L4_Get(msg, 0);
+    for (L4_Word_t j = 0; j < i + 1; j++) {
+        if (it.HasNext()) {
+            e = it.Next();
+        }
+        else {
+            e = 0;
+        }
     }
 
-    return Ipc::ReturnError(msg, ERR_NONE);
+    if (e == 0) {
+        return Ipc::ReturnError(msg, ERR_NOT_FOUND);
+    }
+
+    FindTask(e->tid, &s);
+
+    reg[0] = e->tid.raw;
+    reg[1] = s->GetPager().raw;
+    len = strlen(e->name) + 1;
+    if (len > MAX_STRLEN) {
+        len = MAX_STRLEN;
+    }
+    memcpy(&reg[2], e->name, len);
+    System.Print("%.8lX %.8lX %s\n", reg[0], reg[1], e->name);
+
+    L4_Put(msg, ERR_NONE, (len + 3) / 4 + 2, reg, 0, 0);
+    return ERR_NONE;
 }
 
 static stat_t

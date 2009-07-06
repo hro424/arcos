@@ -44,12 +44,12 @@ L4_ThreadId_t NameService::root_ns = { 0 };
 // Maximum number of registers used for this message. This limits the length
 // of names to (MAX_REGS - 1) * sizeof(L4_Word_t)
 static const int MAX_REGS = 16;
-static L4_Word_t regs[MAX_REGS];
+static L4_Word_t regs[MAX_REGS + 2];
 /// Returns the number of registers used by the string
 #define STRING_NB_REGS(NAME) (strlen(NAME) + sizeof(L4_Word_t)) / sizeof(L4_Word_t)
 /// Checks if the string fits into our registers. We save one register for storing the
 /// tid.
-#define STRING_LENGTH_OK(NAME) (STRING_NB_REGS(name) <= MAX_REGS - 1)
+#define STRING_LENGTH_OK(NAME) (STRING_NB_REGS(name) <= (MAX_REGS + 2) - 1)
 
 stat_t NameService::Insert(const char *const name, const L4_ThreadId_t tid)
 {
@@ -100,11 +100,30 @@ stat_t NameService::Remove(const char *const name)
     return Ipc::Call(rootNS(), &msg, &msg);
 }
 
+/*
 stat_t
 NameService::List()
 {
     L4_Msg_t msg;
     L4_Put(&msg, MSG_NS_LIST, 0, 0, 0, 0);
     return Ipc::Call(rootNS(), &msg, &msg);
+}
+*/
+
+stat_t
+NameService::Enumerate(UInt index, NameEntry* entry)
+{
+    L4_Word_t   reg[MAX_REGS + 2];
+    stat_t      err;
+    L4_Msg_t    msg;
+    L4_Put(&msg, MSG_NS_LIST, 1, &index, 0, 0);
+    err = Ipc::Call(rootNS(), &msg, &msg);
+    if (err == ERR_NONE && entry != 0) {
+        L4_Get(&msg, reg, 0);
+        entry->tid.raw = reg[0];
+        entry->pager.raw = reg[1];
+        strncpy(entry->name, (const char*)&reg[2], MAX_REGS * 4);
+    }
+    return err;
 }
 

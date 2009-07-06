@@ -159,7 +159,7 @@ main()
     //UShort movingFirePos = 0;
     //UShort movingFireWidth = 50;
     //UByte movingFireDir = 1;
-    while (1) {
+    for (int i = 0; i < 1000; i++) {
         MakeFireRoot((UShort*)fb);
         MakeFireEffect((UShort*)fb);
         /*
@@ -181,6 +181,8 @@ main()
         }
         */
     }
+
+    screen.Disconnect();
     
     EXIT;
     return ERR_NONE;

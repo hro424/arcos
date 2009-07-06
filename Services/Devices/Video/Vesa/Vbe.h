@@ -61,27 +61,42 @@ public:
         */
 
         VideoMode* mode = 0;
-        for (UInt i = 0; i < _num_modes; i++) {
-            if (_video_mode[i]->Number == n) {
-                mode = _video_mode[i];
+
+        if (n != 0) {
+            for (UInt i = 0; i < _num_modes; i++) {
+                if (_video_mode[i]->Number == n) {
+                    mode = _video_mode[i];
+                }
             }
-        }
-        if (mode == 0) {
-            return ERR_NOT_FOUND;
+            if (mode == 0) {
+                return ERR_NOT_FOUND;
+            }
+            System.Print("Set mode %dx%dx%dbpp\n",
+                         mode->Xres, mode->Yres, mode->Bpp);
         }
 
         // Set the video mode using BIOS functions
         X86EMU_SETREG(AX, 0x4f02);
-        X86EMU_SETREG(BX, mode->Number | VIDEO_MODE_USE_LFB);
+        X86EMU_SETREG(BX, n | VIDEO_MODE_USE_LFB);
         invokeInt10();
         if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
             return ERR_UNKNOWN;
         }
 
-        System.Print("Set mode %dx%dx%dbpp\n", mode->Xres, mode->Yres,
-                     mode->Bpp);
         EXIT;
         return ERR_NONE;
+    }
+
+    UInt GetVideoMode()
+    {
+        UInt mode;
+        X86EMU_SETREG(AX, 0x4F03);
+        X86EMU_SETREG(BX, mode);
+        invokeInt10();
+        if (!VESA_VBE_SUCCESS(X86EMU_GETREG(AX))) {
+            return 0;
+        }
+        return mode;
     }
 
     /**

@@ -42,6 +42,13 @@
 #include <Types.h>
 #include <l4/thread.h>
 
+struct NameEntry
+{
+    L4_ThreadId_t   tid;
+    L4_ThreadId_t   pager;
+    char            name[64];
+};
+
 /**
  * Defines helper functions to use the naming service.
  */
@@ -78,7 +85,7 @@ public:
      */
     static stat_t Remove(const char *const name);
 
-    static stat_t List();
+    static stat_t Enumerate(UInt index, NameEntry* entry);
 };
 
 #endif // ARC_NAMESERVICE_H_

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2006, 2007, 2008, Waseda University.
+ *  Copyright (C) 2006-2009, Waseda University.
  *  All rights reserved.
  *
  *
@@ -33,8 +33,6 @@
 /// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  2006
 ///
-
-//$Id: Port.cc 429 2008-11-01 02:24:02Z hro $
 
 /*
  * Reference:

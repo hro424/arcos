@@ -46,6 +46,7 @@
 #include "Vbe.h"
 
 static UInt __current_vmode IS_PERSISTENT;
+static UInt __old_vmode IS_PERSISTENT;
 
 
 class VbeServer : public SelfHealingSessionServer
@@ -54,6 +55,7 @@ protected:
     Vbe     _vbe;
 
     virtual stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
+    virtual stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg);
 
 public:
@@ -130,6 +132,32 @@ VbeServer::HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 }
 
 stat_t
+VbeServer::HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+{
+    ENTER;
+    SessionControlBlock*    c;
+    L4_Word_t               base;
+
+    base = L4_Get(&msg, 0);
+    c = Search(tid, base);
+    if (c == 0) {
+        L4_Clear(&msg);
+        L4_Set_Label(&msg, ERR_NOT_FOUND);
+        return ERR_NONE;
+    }
+
+    Deregister(c);
+
+    if (_vbe.SetVideoMode(__old_vmode) != ERR_NONE) {
+        System.Print("Cannot set video mode!\n");
+        return ERR_UNKNOWN;
+    }
+
+    EXIT;
+    return ERR_NONE;
+}
+
+stat_t
 VbeServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 {
     ENTER;
@@ -146,6 +174,9 @@ VbeServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     }
 
     mode = L4_Get(&msg, 1);
+
+    __old_vmode = _vbe.GetVideoMode();
+    System.Print("Old mode: %lu\n", __old_vmode);
 
     if (_vbe.SetVideoMode(mode) != ERR_NONE) {
         System.Print("Cannot set video mode!\n");

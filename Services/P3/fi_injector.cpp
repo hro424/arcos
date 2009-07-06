@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2008, Waseda University.
+ *  Copyright (C) 2008-2009, Waseda University.
  *  All rights reserved.
  *
  *
@@ -33,7 +33,6 @@
 /// @since  August 2008
 ///
 
-//$Id: fi_injector.cpp 434 2008-12-12 01:18:55Z hro $
 
 #include <Types.h>
 #include <Random.h>

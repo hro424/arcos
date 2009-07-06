@@ -137,9 +137,12 @@ public:
 
     stat_t Disconnect()
     {
+        //ReleaseFrameBuffer();
+
         if (_session != 0) {
             delete _session;
         }
+
         return ERR_NONE;
     }
 

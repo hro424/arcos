@@ -5,6 +5,7 @@
 #include <String.h>
 #include <NameService.h>
 #include <Types.h>
+#include <System.h>
 
 class PsCommand : public Command
 {
@@ -23,8 +24,15 @@ public:
         // Connect to the root NS
         // Get the list of running processes
         // Diplay the list
-
-        return NameService::List();
+        UInt i = 0;
+        NameEntry entry;
+        
+        System.Print("TID     \tPAGER   \tNAME\n");
+        while (NameService::Enumerate(i, &entry) == ERR_NONE) {
+            System.Print("%.8lX\t%.8lX\t%s\n",
+                         entry.tid.raw, entry.pager.raw, entry.name);
+            i++;
+        }
     }
 };
 
