@@ -44,6 +44,7 @@
 #include <Types.h>
 #include <arc/IO.h>
 #include <l4/types.h>
+#include <l4/kdebug.h>
 
 ///
 /// Handles keyboard input and delivers it to clients.
@@ -89,6 +90,11 @@ KeyAcceptor::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg)
     data = inb(0x60);
     DOUT("keycode: %lu (0x%.lX) -> %u listeners\n",
          data, data, _listeners.Length());
+    if (data == 9) {
+        L4_KDB_Enter("enter debug");
+        return;
+    }
+
     L4_Put(&event, MSG_EVENT_NOTIFY, 1, &data, 0, 0);
     while (it.HasNext()) {
         L4_ThreadId_t th = it.Next();

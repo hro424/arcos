@@ -46,6 +46,7 @@
 #define ARC_IA32_DEVICE_PCI_H
 
 #include <Types.h>
+#include <arch/io.h>
 
 ///
 /// Reads a byte of data in the specified register in the configuration data

@@ -363,7 +363,8 @@ IpcHandler::HandlePageFault(L4_ThreadId_t tid, L4_Msg_t *msg)
     if (segment == 0) {
         System.Print("address out of range\n");
         System.Print("PF @ %.8lX, ip %.8lX, rwx %lu\n", faddr, fip, rwx);
-        return ERR_OUT_OF_RANGE;
+        //return ERR_OUT_OF_RANGE;
+        return ERR_FATAL;
     }
 
     stat = segment->HandlePf(tid, faddr, fip, &rwx);

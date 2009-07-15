@@ -41,12 +41,13 @@ set(MODULE_NAME ext2)
 set(VERBOSE_LEVEL 3)
 list(APPEND LIBS disk psession)
 
-#add_definitions(-DSYS_DEBUG)
-#add_definitions(-DSYS_DEBUG_CALL)
+add_definitions(-DSYS_DEBUG)
+add_definitions(-DSYS_DEBUG_CALL)
 
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Lv1Service.cmake)
 
 add_custom_target(${MODULE_NAME}_rd
     COMMAND ${MKRD} -a -o ${CMAKE_BINARY_DIR}/${RAMDISK} ${MODULE_NAME})
 add_dependencies(${MODULE_NAME}_rd ramdisk_pre)
+add_dependencies(${MODULE_NAME}_rd ${MODULE_NAME})
 add_dependencies(ramdisk ${MODULE_NAME}_rd)

@@ -26,12 +26,26 @@
 ##
 
 ##
-##  @file   Services/Devices/Audio/CMakeLists.txt
+##  @file   Services/Devices/Audio/SB16/CMakeLists.txt
 ##  @since  April 2008
 ##
 
-#$Id: CMakeLists.txt 349 2008-05-29 01:54:02Z hro $
+#$Id: CMakeLists.txt 412 2008-09-08 12:00:17Z hro $
 
-add_subdirectory(SB16)
-add_subdirectory(SB16-buffered)
-add_subdirectory(AC97)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/Libraries/Audio/include
+    ${CMAKE_SOURCE_DIR}/Libraries/SelfHealing/include)
+
+set(MODULE_NAME ac97)
+
+add_definitions(-DSYS_DEBUG)
+add_definitions(-DSYS_DEBUG_CALL)
+
+include(${CMAKE_SOURCE_DIR}/Tools/CMake/Lv1Service.cmake)
+
+add_custom_target(${MODULE_NAME}_rd
+    COMMAND ${MKRD} -a -o ${CMAKE_BINARY_DIR}/${RAMDISK} ${MODULE_NAME})
+add_dependencies(${MODULE_NAME}_rd ramdisk_pre)
+add_dependencies(${MODULE_NAME}_rd ${MODULE_NAME})
+add_dependencies(ramdisk ${MODULE_NAME}_rd)
+

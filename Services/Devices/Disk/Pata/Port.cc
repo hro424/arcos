@@ -289,13 +289,9 @@ Port::EnableDMA()
 
     // Disable I/O space to set up the bus master interface address.
     reg = PCI_Read16(PIIX3_IDE, PCI_PCICMD);
-    DOUT("pcicmd %.4lX\n", reg);
     PCI_Write16(PIIX3_IDE, PCI_PCICMD, reg & ~1);
-    reg = PCI_Read16(PIIX3_IDE, PCI_PCICMD);
-    DOUT("pcicmd %.4lX\n", reg);
 
     // Set bus master interface address
-    DOUT("bmiba %.8lX\n", PCI_Read32(PIIX3_IDE, PCI_BAR));
     PCI_Write32(PIIX3_IDE, PCI_BAR, BMI_BASE | 1);
     DOUT("bmiba %.8lX\n", PCI_Read32(PIIX3_IDE, PCI_BAR));
 

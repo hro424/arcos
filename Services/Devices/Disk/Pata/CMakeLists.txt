@@ -47,4 +47,5 @@ include(${CMAKE_SOURCE_DIR}/Tools/CMake/Driver.cmake)
 add_custom_target(${MODULE_NAME}_rd
     COMMAND ${MKRD} -a -o ${CMAKE_BINARY_DIR}/${RAMDISK} ${MODULE_NAME})
 add_dependencies(${MODULE_NAME}_rd ramdisk_pre)
+add_dependencies(${MODULE_NAME}_rd ${MODULE_NAME})
 add_dependencies(ramdisk ${MODULE_NAME}_rd)

@@ -276,20 +276,33 @@ fini()
     DOUT("fs disconnected\n");
 }
 
+#define FILE_SERVER     "ext2"
+#define AUDIO_SERVER    "system/audio"
+#define AUDIO_FILE      "home/sound.bin"
+
 int
 main(int argc, char* argv[])
 {
-    if (argc < 3) {
+    if (argc == 1) {
+        if (init_file(FILE_SERVER, AUDIO_FILE) != ERR_NONE) {
+            return -1;
+        }
+        if (init_audio(AUDIO_SERVER) != ERR_NONE) {
+            return -1;
+        }
+    }
+    else if (argc < 3) {
         System.Print("usage: player audio_server file_server file\n");
         return 0;
     }
+    else {
+        if (init_file(argv[2], argv[3]) != ERR_NONE) {
+            return -1;
+        }
 
-    if (init_file(argv[2], argv[3]) != ERR_NONE) {
-        return -1;
-    }
-
-    if (init_audio(argv[1]) != ERR_NONE) {
-        return -1;
+        if (init_audio(argv[1]) != ERR_NONE) {
+            return -1;
+        }
     }
 
     _main_thread = L4_Myself();

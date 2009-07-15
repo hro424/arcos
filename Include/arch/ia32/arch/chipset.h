@@ -119,6 +119,8 @@
 #define ICH_IDE                     CONFADD(0, 31, 1)
 #define ICH_SATA                    CONFADD(0, 31, 2)
 #define ICH_SMBUS                   CONFADD(0, 31, 3)
+#define ICH_AUDIO_REGS              CONFADD(0, 31, 5)
+#define ICH_MODEM_REGS              CONFADD(0, 31, 6)
 
 #define ICH_UHCI1                   CONFADD(0, 29, 0)
 #define ICH_UHCI2                   CONFADD(0, 29, 1)
@@ -141,6 +143,8 @@
 // PCI Register Addresses
 // (Appears in the PCI configuration data register)
 //
+
+// Common Register Addresses
 #define PCI_VID                     0x00    // Vendor Identification
 #define PCI_DID                     0x02    // Device Identification
 #define PCI_PCICMD                  0x04    // PCI Command
@@ -152,6 +156,14 @@
 #define PCI_BCC                     0x0B    // Base Class Code
 #define PCI_PMLT                    0x0D    // Primary Master Latency Timer
 #define PCI_HDR                     0x0E    // Header Type
+
+#define PCI_SVID                    0x2C    // Subsystem Vendor Identification
+#define PCI_SID                     0x2E    // Subsystem Identification
+#define PCI_CAP                     0x34    // Capabilities Pointer
+#define PCI_INT_LN                  0x3C    // Interrupt Line
+#define PCI_INT_PN                  0x3D    // Interrupt Pin
+
+// SATA Controller Registers
 #define PCI_BIST                    0x0F    // BIST
 #define PCI_PCMD_BAR                0x10    // Primary Command Block Base Addr
 #define PCI_PCNL_BAR                0x14    // Primary Control Block Base Addr
@@ -159,11 +171,6 @@
 #define PCI_SCNL_BAR                0x1C    // Secondary Control Block Base
 #define PCI_BAR                     0x20    // Legacy Bus Master Base Address
 #define PCI_ABAR                    0x24    // AHCI Base Address
-#define PCI_SVID                    0x2C    // Subsystem Vendor Identification
-#define PCI_SID                     0x2E    // Subsystem Identification
-#define PCI_CAP                     0x34    // Capabilities Pointer
-#define PCI_INT_LN                  0x3C    // Interrupt Line
-#define PCI_INT_PN                  0x3D    // Interrupt Pin
 
 #define PCI_EPBAR                   0x40    // Egress port base address
 #define PCI_PIDE_TIMP               0x40    // Primary IDE Timing
@@ -184,7 +191,7 @@
 #define PCI_SATA_MSIMA              0x84
 #define PCI_SATA_MSIMD              0x88
 #define PCI_SATA_MAP                0x90
-#define PCI_PCS                     0x92    // SATA port control and status
+#define PCI_SATA_PCS                0x92    // SATA port control and status
 #define PCI_SATA_SIR                0x94
 #define PCI_LAC                     0x97    // Legacy access control
 #define PCI_REMAPBASE               0x98    // Remap base address
@@ -201,6 +208,20 @@
 #define PCI_SATA_BFCS               0xE0
 #define PCI_SATA_BFTD1              0xE4
 #define PCI_SATA_BFTD2              0xE8
+
+// AC '97 Audio Controller Registers
+#define PCI_NAMXBAR                 0x10    // Native Audio Mixer Base Address
+#define PCI_NABMBAR                 0x14    // Native Audio Bus Mastring Base
+#define PCI_MMBAR                   0x18    // Mixer Base Address
+#define PCI_MBBAR                   0x1C    // Bus Master Base Address
+#define PCI_GLOB_CNT                0x2C
+#define PCI_GLOB_STA                0x30
+#define PCI_PCID                    0x40    // Programmable Codec ID
+#define PCI_CFG                     0x41    // Configuration
+
+#define PCI_PID                     0x50    // PCI Power Management Cap ID
+#define PCI_PC                      0x52    // Power Management Capabilities
+#define PCI_PCS                     0x54    // Power Mgmt Control and Status
 
 //
 // PCI Register Values and Masks

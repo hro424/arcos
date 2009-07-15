@@ -33,5 +33,5 @@
 
 #$Id: CMakeLists.txt 349 2008-05-29 01:54:02Z hro $
 
-set(MODULE_NAME injector)
+set(MODULE_NAME ij)
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Application.cmake)
