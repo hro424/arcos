@@ -8,8 +8,9 @@
 void
 AC97::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
 {
-    DOUT("int %.8lX\n", tid.raw);
+    DOUT("irq %.8lX\n", tid.raw >> 14);
 }
+
 
 stat_t
 AC97::Initialize()
@@ -34,7 +35,7 @@ AC97::Initialize()
 
     _bm_base = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
     Pager.Map(_bm_base, L4_ReadWriteOnly, BUFFER_ADDRESS, L4_nilthread);
-    SetTransferBaseAddress(BUFFER_ADDRESS);
+    SetBusMasterBaseAddress(BUFFER_ADDRESS);
 
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);

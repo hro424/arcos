@@ -89,7 +89,7 @@ public:
 
     UInt GetVideoMode()
     {
-        UInt mode;
+        UInt mode = 0;
         X86EMU_SETREG(AX, 0x4F03);
         X86EMU_SETREG(BX, mode);
         invokeInt10();

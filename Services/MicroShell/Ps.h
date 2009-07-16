@@ -33,6 +33,8 @@ public:
                          entry.tid.raw, entry.pager.raw, entry.name);
             i++;
         }
+
+        return ERR_NONE;
     }
 };
 

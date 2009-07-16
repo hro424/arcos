@@ -55,7 +55,11 @@ public:
     ///
     /// Obtains the error code of the last system call.
     ///
-    static stat_t ErrorCode();
+    static stat_t ErrorCode()
+    {
+        return static_cast<stat_t>(((L4_ErrorCode() >> 1) & ERR_IPC_MASK)
+                                   + ERR_OFFSET_IPC);
+    }
 
     ///
     /// Makes an IPC call.  Blocks until it receives a reply from the
@@ -65,7 +69,18 @@ public:
     /// @param out          the message to be sent
     /// @param in           the message received
     ///
-    static stat_t Call(L4_ThreadId_t dest, L4_Msg_t* out, L4_Msg_t* in);
+    static stat_t Call(L4_ThreadId_t dest, L4_Msg_t* out, L4_Msg_t* in)
+    {
+        L4_MsgTag_t tag;
+
+        L4_Load(out);
+        tag = L4_Call(dest);
+        if (L4_IpcFailed(tag)) {
+            return Ipc::ErrorCode();
+        }
+        L4_Store(tag, in);
+        return static_cast<stat_t>(L4_Label(in));
+    }
 
     ///
     /// Makes an IPC call.  Blocks until it receives a reply from the
@@ -77,7 +92,18 @@ public:
     /// @param in           the message received
     ///
     static stat_t Call(L4_ThreadId_t dest, L4_Time_t timeout,
-                       L4_Msg_t* out, L4_Msg_t* in);
+                       L4_Msg_t* out, L4_Msg_t* in)
+    {
+        L4_MsgTag_t tag;
+
+        L4_Load(out);
+        tag = L4_Call(dest, timeout, timeout);
+        if (L4_IpcFailed(tag)) {
+            return Ipc::ErrorCode();
+        }
+        L4_Store(tag, in);
+        return static_cast<stat_t>(L4_MsgLabel(in));
+    }
 
     ///
     /// Makes a one-way IPC.
@@ -85,7 +111,16 @@ public:
     /// @param dest         the destination thread
     /// @param out          the message to be sent
     ///
-    static stat_t Send(L4_ThreadId_t dest, L4_Msg_t* out);
+    static stat_t Send(L4_ThreadId_t dest, L4_Msg_t* out)
+    {
+        L4_MsgTag_t tag;
+        L4_Load(out);
+        tag = L4_Send(dest);
+        if (L4_IpcFailed(tag)) {
+            return Ipc::ErrorCode();
+        }
+        return ERR_NONE;
+    }
 
     ///
     /// Checks the contents of the message.  Refer the L4 manual for the
@@ -95,7 +130,11 @@ public:
     /// @param typed        the number of typed registers
     /// @param untyped      the number of untyped registers
     ///
-    static Bool CheckPayload(L4_Msg_t* msg, size_t typed, size_t untyped);
+    static Bool CheckPayload(L4_Msg_t* msg, size_t typed, size_t untyped)
+    {
+        L4_MsgTag_t tag = L4_MsgTag(msg);
+        return (L4_TypedWords(tag) != typed || L4_UntypedWords(tag) != untyped);
+    }
 
     ///
     /// Creates an error IPC message.
@@ -103,70 +142,12 @@ public:
     /// @param msg          the message to be filled
     /// @param error        the error code
     ///
-    static stat_t ReturnError(L4_Msg_t* msg, stat_t error);
+    static stat_t ReturnError(L4_Msg_t* msg, stat_t error)
+    {
+        L4_Put(msg, error, 0, (L4_Word_t *)0, 0, (void *)0);
+        return error;
+    }
 };
-
-inline stat_t
-Ipc::ErrorCode()
-{
-    return static_cast<stat_t>(
-                ((L4_ErrorCode() >> 1) & ERR_IPC_MASK) + ERR_OFFSET_IPC);
-}
-
-inline stat_t
-Ipc::Call(L4_ThreadId_t dest, L4_Msg_t *out, L4_Msg_t *in)
-{
-    L4_MsgTag_t tag;
-
-    L4_Load(out);
-    tag = L4_Call(dest);
-    if (L4_IpcFailed(tag)) {
-        return Ipc::ErrorCode();
-    }
-    L4_Store(tag, in);
-    return static_cast<stat_t>(L4_Label(in));
-}
-
-inline stat_t
-Ipc::Call(L4_ThreadId_t dest, L4_Time_t timeout, L4_Msg_t *out, L4_Msg_t *in)
-{
-    L4_MsgTag_t tag;
-
-    L4_Load(out);
-    tag = L4_Call(dest, timeout, timeout);
-    if (L4_IpcFailed(tag)) {
-        return Ipc::ErrorCode();
-    }
-    L4_Store(tag, in);
-    return static_cast<stat_t>(L4_MsgLabel(in));
-}
-
-inline stat_t
-Ipc::Send(L4_ThreadId_t dest, L4_Msg_t *out)
-{
-    L4_MsgTag_t tag;
-
-    L4_Load(out);
-    tag = L4_Send(dest);
-    if (L4_IpcFailed(tag)) {
-        return Ipc::ErrorCode();
-    }
-    return ERR_NONE;
-}
-
-inline Bool
-Ipc::CheckPayload(L4_Msg_t *msg, size_t typed, size_t untyped)
-{
-    L4_MsgTag_t tag = L4_MsgTag(msg);
-    return (L4_TypedWords(tag) != typed || L4_UntypedWords(tag) != untyped);
-}
-
-inline stat_t
-Ipc::ReturnError(L4_Msg_t *msg, stat_t error)
-{
-    L4_Put(msg, error, 0, (L4_Word_t *)0, 0, (void *)0);
-    return error;
-}
 
 #endif // ARC_IPC_H
 

@@ -26,20 +26,51 @@ public:
         _device.SetMasterVolume(0x0A0A);
         _device.SetPCMOutVolume(0x0A0A);
 
+        // Register the last valid index of the buffer descriptors
         DOUT("Global status: %.8lX\n", _device.GetGlobalStatus());
         _device.SetPCMOutLastValidIndex(0x0F);
 
-        UInt* buf = (UInt*)palloc(1);
-        Pager.Map((addr_t)buf, L4_ReadWriteOnly);
-        _device.SetPCMOutBuffer(Pager.Phys((addr_t)buf));
+        // Register the buffer descriptor base address
+        UInt* desc = (UInt*)palloc(1);
+        Pager.Map((addr_t)desc, L4_ReadWriteOnly);
+        _device.SetPCMOutBufDescBase(Pager.Phys((addr_t)desc));
 
         DOUT("current: %.2lX\n", _device.GetPCMOutCurrentIndex());
         DOUT("prefetch: %.2lX\n", _device.GetPCMOutPrefetchedIndex());
         DOUT("position: %.4lX\n", _device.GetPCMOutPosition());
 
+        char* test_buf = (char*)palloc(1);
+        Pager.Map((addr_t)test_buf, L4_ReadWriteOnly);
+
+        bool ceil = false;
+        int sample = 0;
+        int sample_step = 4;
+        for (int i = 0; i < 4096; i++) {
+            if (!ceil) {
+                sample += sample_step;
+                if (sample > 0xFF) {
+                    sample = 0xFF;
+                    ceil = 1;
+                }
+                else {
+                    sample -= sample_step;
+                    if (sample < 0) {
+                        sample = 0; 
+                        ceil = 0;
+                    }
+                }
+                test_buf[i] = sample;
+            }
+        }
+
+
+        addr_t ptr = Pager.Phys((addr_t)test_buf);
         for (int i = 0; i < 0x10; i += 2) {
-            buf[i] = 0x5000000;
-            buf[i + 1] = 0x80000100;
+            desc[i] = ptr;
+            desc[i + 1] = 0x00000100;
+            ptr += 0x100;
+            DOUT("desc[%d]:%.8lX desc[%d]:%.8lX\n",
+                 i, desc[i], i + 1, desc[i + 1]);
         }
 
         _device.SetPCMOutControl(0x1D);

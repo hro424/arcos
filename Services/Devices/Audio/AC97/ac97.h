@@ -12,99 +12,167 @@
 class AC97 : public InterruptHandler
 {
 public:
+    /**
+     * The base address of the memory-mapped registers of the mixer.
+     */
     addr_t      _mixer_base;
+
+    /**
+     * The base address of the memory-mapped registers of the bus master.
+     */
     addr_t      _bm_base;
+
+    /**
+     * The physical address of the mixer.
+     */
     static const addr_t MIXER_ADDRESS = 0xF0010000;
+
+    /**
+     * The physical address of the bus master.
+     */
     static const addr_t BUFFER_ADDRESS = 0xF0020000;
 
+    /**
+     * Registers the base address of the mixer.  The old value is over-written.
+     */
     void SetMixerBaseAddress(addr_t base)
     { PCI_Write32(ICH_AUDIO, PCI_MMBAR, base & 0xFFFFFE00); }
 
-    void SetTransferBaseAddress(addr_t base)
+    /**
+     * Registers the base address of the bus master.  The old value is over-
+     * written.
+     */
+    void SetBusMasterBaseAddress(addr_t base)
     { PCI_Write32(ICH_AUDIO, PCI_MBBAR, base & 0xFFFFFF00); }
 
+    /**
+     * Reads the register of the mixer.
+     */
     UShort MixerRead(addr_t reg) { return *(UShort*)(_mixer_base + reg); }
 
+    /**
+     * Writes the value to the register of the mixer.
+     */
     void MixerWrite(addr_t reg, UShort val)
     { *(UShort*)(_mixer_base + reg) = val; }
 
+    /**
+     * Reads the register of the bus master in 32-bit.
+     */
     UInt BMRead32(addr_t reg) { return *(UInt*)(_bm_base + reg); }
 
+    /**
+     * Writes the value to the register of the bus master in 32-bit.
+     */
     void BMWrite32(addr_t reg, UInt val) { *(UInt*)(_bm_base + reg) = val; }
 
+    /**
+     * Reads the register of the bus master in 16-bit.
+     */
     UShort BMRead16(addr_t reg) { return *(UShort*)(_bm_base + reg); }
 
+    /**
+     * Writes the value to the register of the bus master in 16-bit.
+     */
     void BMWrite16(addr_t reg, UShort val) { *(UShort*)(_bm_base + reg) = val; }
 
+    /**
+     * Reads the register of the bus master in 8-bit.
+     */
     UByte BMRead8(addr_t reg) { return *(UByte*)(_bm_base + reg); }
 
+    /**
+     * Writes the value to the register of the bus master in 8-bit.
+     */
     void BMWrite8(addr_t reg, UByte val) { *(UByte*)(_bm_base + reg) = val; }
 
 public:
+    /**
+     * Interrupt request number of the audio device.
+     */
     static const UInt   IRQ_AC97 = 0xC;
 
+    /**
+     * Initializes the instance.
+     */
     stat_t Initialize();
 
+    /**
+     * Cleans up the instance.
+     */
     void Finalize()
     {
         pfree(_bm_base, 1);
         pfree(_mixer_base, 1);
     }
 
-    void SetGlobalControl(UInt val) { BMWrite32(0x2C, val); }
+    /**
+     * Places the value to the global control register.
+     */
+    void SetGlobalControl(UInt val) { BMWrite32(AC97_IO_GLOB_CNT, val); }
 
-    UInt GetGlobalControl() { return BMRead32(0x2C); }
+    /**
+     * Obtains the value of the global control register.
+     */
+    UInt GetGlobalControl() { return BMRead32(AC97_IO_GLOB_CNT); }
 
+    /**
+     * Places the value to the global status register.
+     */
     void SetGlobalStatus(UInt val)
-    { BMWrite32(0x30, val); }
+    { BMWrite32(AC97_IO_GLOB_STA, val); }
 
-    UInt GetGlobalStatus() { return BMRead32(0x30); }
-
-    void SetPCMOutBuffer(addr_t base) { BMWrite32(0x10, base); }
-
-    addr_t GetPCMOutBuffer() { return BMRead32(0x10); }
-
-    UByte GetPCMOutCurrentIndex() { return BMRead8(0x14); }
-
-    void SetPCMOutLastValidIndex(UByte i) { BMWrite8(0x15, i); }
-
-    UByte GetPCMOutLastValidIndex() { return BMRead8(0x15); }
-
-    void SetPCMOutStatus(UShort stat) { BMWrite16(0x16, stat); }
-
-    UShort GetPCMOutStatus() { return BMRead16(0x16); }
-
-    UShort GetPCMOutPosition() { return BMRead16(0x18); }
-
-    UByte GetPCMOutPrefetchedIndex() { return BMRead8(0x1A); }
-
-    void SetPCMOutControl(UByte val) { BMWrite8(0x1B, val); }
-
-    UByte GetPCMOutControl() { return BMRead8(0x1B); }
-
-    void ResetPCMOut() { SetPCMOutControl(0x2); }
+    /**
+     * Obtains the value of the global status register.
+     */
+    UInt GetGlobalStatus() { return BMRead32(AC97_IO_GLOB_STA); }
 
 
+    void SetPCMOutBufDescBase(addr_t base) { BMWrite32(AC97_IO_POBDBAR, base); }
 
-    void SetMasterVolume(UShort vol) { MixerWrite(AMREG_MASTER_VOL, vol); }
+    addr_t GetPCMOutBufDescBase() { return BMRead32(AC97_IO_POBDBAR); }
 
-    UShort GetMasterVolume() { return MixerRead(AMREG_MASTER_VOL); }
+    UByte GetPCMOutCurrentIndex() { return BMRead8(AC97_IO_POCIV); }
 
-    void SetMonoVolume(UShort vol) { MixerWrite(AMREG_MONO_VOL, vol); }
+    void SetPCMOutLastValidIndex(UByte i) { BMWrite8(AC97_IO_POLVI, i); }
 
-    UShort GetMonoVolume() { return MixerRead(AMREG_MONO_VOL); }
+    UByte GetPCMOutLastValidIndex() { return BMRead8(AC97_IO_POLVI); }
 
-    void SetMasterTone(UShort tone) { MixerWrite(AMREG_MASTER_TONE, tone); }
+    void SetPCMOutStatus(UShort stat) { BMWrite16(AC97_IO_POSR, stat); }
 
-    UShort GetMasterTone() { return MixerRead(AMREG_MASTER_TONE); }
+    UShort GetPCMOutStatus() { return BMRead16(AC97_IO_POSR); }
 
-    void SetPCBeepVolume(UShort vol) { MixerWrite(AMREG_PCBEEP_VOL, vol); }
+    UShort GetPCMOutPosition() { return BMRead16(AC97_IO_POPICB); }
 
-    UShort GetPCBeepVolume() { return MixerRead(AMREG_PCBEEP_VOL); }
+    UByte GetPCMOutPrefetchedIndex() { return BMRead8(AC97_IO_POPIV); }
 
-    void SetPCMOutVolume(UShort vol) { MixerWrite(AMREG_PCMOUT_VOL, vol); }
+    void SetPCMOutControl(UByte val) { BMWrite8(AC97_IO_POCR, val); }
 
-    UShort GetPCMOutVolume() { return MixerRead(AMREG_PCMOUT_VOL); }
+    UByte GetPCMOutControl() { return BMRead8(AC97_IO_POCR); }
+
+    void ResetPCMOut() { SetPCMOutControl(AC97_IO_CR_RR); }
+
+
+
+    void SetMasterVolume(UShort vol) { MixerWrite(AC97_IO_MASTER_VOL, vol); }
+
+    UShort GetMasterVolume() { return MixerRead(AC97_IO_MASTER_VOL); }
+
+    void SetMonoVolume(UShort vol) { MixerWrite(AC97_IO_MONO_VOL, vol); }
+
+    UShort GetMonoVolume() { return MixerRead(AC97_IO_MONO_VOL); }
+
+    void SetMasterTone(UShort tone) { MixerWrite(AC97_IO_MASTER_TONE, tone); }
+
+    UShort GetMasterTone() { return MixerRead(AC97_IO_MASTER_TONE); }
+
+    void SetPCBeepVolume(UShort vol) { MixerWrite(AC97_IO_PCBEEP_VOL, vol); }
+
+    UShort GetPCBeepVolume() { return MixerRead(AC97_IO_PCBEEP_VOL); }
+
+    void SetPCMOutVolume(UShort vol) { MixerWrite(AC97_IO_PCMOUT_VOL, vol); }
+
+    UShort GetPCMOutVolume() { return MixerRead(AC97_IO_PCMOUT_VOL); }
 
 
     stat_t EnableInterrupt()
@@ -119,6 +187,9 @@ public:
         imng->Deregister(IRQ_AC97);
     }
 
+    /**
+     * Handles the interrupt request.
+     */
     void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg);
 };
 

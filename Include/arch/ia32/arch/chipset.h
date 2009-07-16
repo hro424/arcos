@@ -214,8 +214,6 @@
 #define PCI_NABMBAR                 0x14    // Native Audio Bus Mastring Base
 #define PCI_MMBAR                   0x18    // Mixer Base Address
 #define PCI_MBBAR                   0x1C    // Bus Master Base Address
-#define PCI_GLOB_CNT                0x2C
-#define PCI_GLOB_STA                0x30
 #define PCI_PCID                    0x40    // Programmable Codec ID
 #define PCI_CFG                     0x41    // Configuration
 

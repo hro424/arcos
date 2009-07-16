@@ -167,32 +167,7 @@ protected:
 public:
     Thread(size_t stack_size);
 
-    virtual ~Thread()
-    {
-        L4_Msg_t    msg;
-        L4_Word_t   reg[2];
-        stat_t      err;
-
-        _state_lock.Lock();
-        if (_state != TERMINATED) {
-            _destructor = L4_Myself();
-            _state_lock.Unlock();
-            L4_Receive(_tid);
-        }
-        else {
-            _state_lock.Unlock();
-        }
-
-        reg[0] = _tid.raw;
-        reg[1] = L4_Myself().raw;
-        L4_Put(&msg, MSG_ROOT_DEL_TH, 2, reg, 0, 0);
-        err = Ipc::Call(L4_Pager(), &msg, &msg);
-        if (err != ERR_NONE) {
-            System.Print(System.ERROR, "thread deletion failed\n");
-            return;
-        }
-    }
-
+    virtual ~Thread();
 
     ///
     /// Obtains the L4 thread ID of the thread
@@ -267,6 +242,34 @@ Thread<STACK_SIZE>::Thread(size_t stack_size = STACK_SIZE)
     //_priority = DEFAULT_PRIORITY;
     //_state = READY;
 }
+
+template <size_t STACK_SIZE>
+Thread<STACK_SIZE>::~Thread()
+{
+    L4_Msg_t    msg;
+    L4_Word_t   reg[2];
+    stat_t      err;
+
+    _state_lock.Lock();
+    if (_state != TERMINATED) {
+        _destructor = L4_Myself();
+        _state_lock.Unlock();
+        L4_Receive(_tid);
+    }
+    else {
+        _state_lock.Unlock();
+    }
+
+    reg[0] = _tid.raw;
+    reg[1] = L4_Myself().raw;
+    L4_Put(&msg, MSG_ROOT_DEL_TH, 2, reg, 0, 0);
+    err = Ipc::Call(L4_Pager(), &msg, &msg);
+    if (err != ERR_NONE) {
+        System.Print(System.ERROR, "thread deletion failed\n");
+        return;
+    }
+}
+
 
 template <size_t STACK_SIZE>
 void

@@ -688,6 +688,9 @@ IpcHandler::HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg)
     else if (where == FI_DATA_AREA) {
         seg = &_task->data;
     }
+    else {
+        seg = 0;
+    }
 
     start_addr = seg->StartAddress();
     end_addr = seg->EndAddress();
