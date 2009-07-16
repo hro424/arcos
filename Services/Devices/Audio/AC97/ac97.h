@@ -11,7 +11,15 @@
 
 class AC97 : public InterruptHandler
 {
-public:
+private:
+    static const UInt    DESC_LENGTH = 0x20;
+    // Buffer Descriptors
+    UInt*   test_desc;
+    // Buffer
+    char*   test_buf;
+
+    void TestInit();
+
     /**
      * The base address of the memory-mapped registers of the mixer.
      */
@@ -151,6 +159,8 @@ public:
     UByte GetPCMOutControl() { return BMRead8(AC97_IO_POCR); }
 
     void ResetPCMOut() { SetPCMOutControl(AC97_IO_CR_RR); }
+
+    void StartPCMOut() { SetPCMOutControl(0x1D); }
 
 
 
