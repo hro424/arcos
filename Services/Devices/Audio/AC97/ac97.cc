@@ -76,7 +76,7 @@ AC97::TestInit()
     test_buf = (char*)palloc(1);
     Pager.Map((addr_t)test_buf, L4_ReadWriteOnly);
 
-    // Register buffers to the descriptors
+    // Register buffers to the descriptor table
     addr_t ptr = Pager.Phys((addr_t)test_buf);
     for (UInt i = 0; i < DESC_LENGTH; i += 2) {
         test_desc[i] = ptr;
@@ -103,14 +103,24 @@ AC97::Initialize()
     PCI_Write16(ICH_AUDIO, PCI_PCICMD, 0);
     PCI_Write8(ICH_AUDIO, PCI_CFG, 0);
 
-    _mixer_base = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
-    Pager.Map(_mixer_base, L4_ReadWriteOnly, MIXER_ADDRESS, L4_nilthread);
-    SetMixerBaseAddress(MIXER_ADDRESS);
+    // The mapped registers for mixer require 512 bytes.
+    // The mapped registers for the bus master require 256 bytes.
+    _mapped_io = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
+    Pager.Map(_mapped_io, L4_ReadWriteOnly, MAPPED_IO_BASE, L4_nilthread);
+    SetMixerBaseAddress(MAPPED_IO_BASE);
+    SetBusMasterBaseAddress(MAPPED_IO_BASE + 1024);
 
-    _bm_base = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
-    Pager.Map(_bm_base, L4_ReadWriteOnly, BUFFER_ADDRESS, L4_nilthread);
-    SetBusMasterBaseAddress(BUFFER_ADDRESS);
+    _mixer.Initialize(_mapped_io);
+    AC97Channel::Initialize(_mapped_io + 1024);
 
+    _channels[0] = new AC97PCMIn();
+    _channels[1] = new AC97PCMOut();
+    _channels[2] = new AC97MicIn();
+    _channels[3] = new AC97Mic2();
+    _channels[4] = new AC97PCMIn2();
+    _channels[5] = new AC97SPDIFOut();
+
+    // Activate the bus master
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);
 

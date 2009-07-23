@@ -159,6 +159,9 @@
 #define MSG_EVENT_DISCONNECT        0x6020
 #define MSG_EVENT_NOTIFY            0x6030
 #define MSG_EVENT_TERMINATE         0x6040
+#define MSG_EVENT_START             0x6050
+#define MSG_EVENT_STOP              0x6060
+#define MSG_EVENT_CONFIG            0x6070
 
 #endif // ARC_PROTOCOL_H
 
