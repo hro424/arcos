@@ -84,11 +84,11 @@ public:
         L4_Msg_t    msg;
         L4_Word_t   reg = Id();
         L4_Put(&msg, MSG_EVENT_CONNECT, 1, &reg, 0, 0);
-        EXIT;
         err = Ipc::Call(_server, &msg, &msg);
-        if (err != ERR_NONE) {
+        if (err == ERR_NONE) {
             _int_server.raw = L4_Get(&msg, 0);
         }
+        EXIT;
         return err;
     }
 

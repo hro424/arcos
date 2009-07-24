@@ -10,14 +10,14 @@
 
 struct AC97BufferDescriptor
 {
-    addr_t  address;
     union {
-        UInt    raw;
+        UInt raw[2];
         struct {
-            UInt    ioc:1;
-            UInt    bup:1;
-            UInt    _reserved:14;
+            addr_t  address;
             UShort  length;
+            UInt    _reserved:14;
+            UInt    bup:1;
+            UInt    ioc:1;
         };
     };
 };
@@ -25,36 +25,13 @@ struct AC97BufferDescriptor
 struct AC97Buffer : public AudioBuffer
 {
     // Limited to the size of L4 message registers
-    static const UInt       SIZE = 32; 
+    static const size_t     SIZE = 32; 
     AC97BufferDescriptor    desc[SIZE];
 };
 
 
 class AC97Channel : public AudioChannel
 {
-protected:
-    stat_t Config(int config, UInt* arg)
-    {
-        L4_Msg_t    msg;
-        L4_Word_t   regs[3];
-        stat_t      err;
-
-        regs[0] = GetType();
-        assert(0 <= regs[0] && regs[0] < 6);
-        regs[1] = config;
-        regs[2] = *arg;
-
-        L4_Put(&msg, MSG_EVENT_CONFIG, 3, regs, 0, 0);
-        err = Ipc::Call(_server, &msg, &msg);
-        if (err == ERR_NONE) {
-            *arg = L4_Get(&msg, 0);
-        }
-
-        return err;
-    }
-
-    virtual L4_Word_t Id() { return (L4_Word_t)GetType(); }
-
 public:
     enum channel_e {
         pcm_in = 0,
@@ -81,6 +58,30 @@ public:
 
     static const UInt NUM_CHANNELS = 6;
 
+protected:
+    stat_t Config(int config, UInt* arg)
+    {
+        L4_Msg_t    msg;
+        L4_Word_t   regs[3];
+        stat_t      err;
+
+        regs[0] = GetType();
+        assert(0 <= regs[0] && regs[0] < NUM_CHANNELS);
+        regs[1] = config;
+        regs[2] = *arg;
+
+        L4_Put(&msg, MSG_EVENT_CONFIG, 3, regs, 0, 0);
+        err = Ipc::Call(_server, &msg, &msg);
+        if (err == ERR_NONE) {
+            *arg = L4_Get(&msg, 0);
+        }
+
+        return err;
+    }
+
+    L4_Word_t Id() { return static_cast<L4_Word_t>(GetType()); }
+
+public:
     // Because we don't use RTTI support.
     virtual AC97Channel::channel_e GetType() = 0;
 
@@ -91,12 +92,8 @@ public:
 
     virtual stat_t SetBuffer(const AC97Buffer* buf)
     {
-        L4_Msg_t    msg;
-
-        L4_Set_Label(&msg, MSG_EVENT_CONFIG);
-        L4_Append(&msg, AC97Channel::set_bufdesc);
-        L4_Append(&msg, Pager.Phys((addr_t)buf));
-        return Ipc::Call(_server, &msg, &msg);
+        L4_Word_t reg = Pager.Phys((addr_t)buf);
+        return Config(AC97Channel::set_bufdesc, &reg);
     }
 
     /*
@@ -120,14 +117,18 @@ public:
     { SetVolume(GetVolumeLeft() & ((UInt)vol)); }
     */
 
-    virtual UInt GetStatus()
+    virtual UShort GetStatus()
     {
         UInt arg;
         Config(AC97Channel::get_stat, &arg);
-        return arg;
+        return (UShort)(arg & 0xFF);
     }
 
-    virtual void SetStatus(UInt arg) { Config(AC97Channel::set_stat, &arg); }
+    virtual void SetStatus(UShort arg)
+    {
+        L4_Word_t reg = arg;
+        Config(AC97Channel::set_stat, &reg);
+    }
 
     virtual UInt GetPosition()
     {

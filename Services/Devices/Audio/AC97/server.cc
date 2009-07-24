@@ -29,6 +29,8 @@ public:
         ENTER;
         _device.Initialize();
         _device.EnableInterrupt();
+        _device.Mixer()->SetMasterVolume(0x0808);
+        _device.Mixer()->SetPCMOutVolume(0x0808);
         EXIT;
         return ERR_NONE;
     }
@@ -49,8 +51,10 @@ public:
 
     stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
+        ENTER;
         L4_Word_t reg = _device.Id().raw;
         L4_Put(&msg, ERR_NONE, 1, &reg, 0, 0);
+        EXIT;
         return ERR_NONE;
     }
 
@@ -78,6 +82,8 @@ public:
             _device.AddListener(handler);
             channel->Activate();
         }
+
+        //channel->SetLastValidIndex(1);
 
         EXIT;
         return ERR_NONE;
@@ -109,31 +115,26 @@ public:
         L4_Word_t           op = L4_Get(&msg, 1);
         AC97ServerChannel*  channel;
 
-        DOUT("channel %lu\n", type);
         channel = _device.Channel(type);
         switch (op) {
             case AC97Channel::set_bufdesc:
             {
-                DOUT("\n");
-                //Hack
-                channel->SetLastValidIndex(0);
-                DOUT("\n");
-
                 channel->SetBufDescBase(L4_Get(&msg, 2));
-                DOUT("\n");
                 L4_Clear(&msg);
                 break;
             }
             case AC97Channel::get_stat:
             {
-                UShort stat = channel->GetStatus();
+                L4_Word_t stat = channel->GetStatus();
                 L4_Clear(&msg);
-                L4_Put(&msg, ERR_NONE, 1, (L4_Word_t*)&stat, 0, 0);
+                L4_Put(&msg, ERR_NONE, 1, &stat, 0, 0);
                 break;
             }
             case AC97Channel::set_stat:
             {
                 channel->SetStatus(L4_Get(&msg, 2));
+                channel->SetLastValidIndex(1);
+                channel->SetLastValidIndex(0);
                 L4_Clear(&msg);
                 break;
             }

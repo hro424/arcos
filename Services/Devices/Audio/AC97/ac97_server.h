@@ -62,9 +62,7 @@ protected:
      * Writes the value to the register of the bus master in 8-bit.
      */
     static void BMWrite8(addr_t reg, UByte val)
-    {
-        DOUT("addr: %.8lX\n", _bm_base + reg);
-        *(UByte*)(_bm_base + reg) = val; }
+    { *(UByte*)(_bm_base + reg) = val; }
 
 
 public:
@@ -102,14 +100,7 @@ public:
 
     UByte GetCurrentIndex() { return BMRead8(AC97_IO_CIV(ChannelBase())); }
 
-    void SetLastValidIndex(UByte i) {
-        ENTER;
-        DOUT("\n");
-        DOUT("chbase:%.4lX\n", _ch_base);
-        DOUT("base:%d\n", this->ChannelBase());
-        DOUT("\n");
-        //BMWrite8(AC97_IO_LVI(ChannelBase()), i); EXIT;
-    }
+    void SetLastValidIndex(UByte i) { BMWrite8(AC97_IO_LVI(ChannelBase()), i); }
 
     UByte GetLastValidIndex() { return BMRead8(AC97_IO_LVI(ChannelBase())); }
 
@@ -125,7 +116,7 @@ public:
 
     UByte GetControl() { return BMRead8(AC97_IO_CR(ChannelBase())); }
 
-    void Activate() { SetControl(0x1D); }
+    void Activate() { SetControl(0x19); }
 
     void Deactivate() { SetControl(0); }
 
@@ -280,17 +271,14 @@ public:
     ///
     void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
     {
-        ENTER;
         L4_Msg_t                    event;
         Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
 
         L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
         while (it.HasNext()) {
             L4_ThreadId_t th = it.Next();
-            DOUT("send to %.8lX\n", th.raw);
             Ipc::Send(th, &event);
         }
-        EXIT;
     }
 
     ///
