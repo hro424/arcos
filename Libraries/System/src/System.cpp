@@ -34,8 +34,6 @@
 /// @since  April 2008
 ///
 
-//$Id: System.cpp 429 2008-11-01 02:24:02Z hro $
-
 #include <Format.h>
 #include <Stream.h>
 #include <System.h>

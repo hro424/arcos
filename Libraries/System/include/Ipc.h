@@ -51,7 +51,6 @@ private:
     static const UInt ERR_IPC_MASK = 0x7;
 
 public:
-
     ///
     /// Obtains the error code of the last system call.
     ///
@@ -144,7 +143,7 @@ public:
     ///
     static stat_t ReturnError(L4_Msg_t* msg, stat_t error)
     {
-        L4_Put(msg, error, 0, (L4_Word_t *)0, 0, (void *)0);
+        L4_Put(msg, error, 0, 0, 0, 0);
         return error;
     }
 };

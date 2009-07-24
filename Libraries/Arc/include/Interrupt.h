@@ -123,19 +123,30 @@ private:
     InterruptHelper*            _iht_table[NIRQ];
 
 protected:
-    InterruptManager();
+    InterruptManager()
+    {
+        for (UInt i = 0; i < NIRQ; i++) {
+            _iht_table[i] = 0;
+        }
+    }
 
 public:
     ///
     /// Returns the instance of InterruptManager.  InterruptManager is a
     /// singleton class.
     ///
-    static InterruptManager* Instance();
+    static InterruptManager* Instance()
+    {
+        if (_self == 0) {
+            _self = new InterruptManager;
+        }
+        return _self;
+    }
 
     ///
     /// Destroys the InterruptManager.  This is a dangerous call.
     ///
-    static void Destroy();
+    //static void Destroy();
 
     ///
     /// Registers an interrupt handler to the specified IRQ.

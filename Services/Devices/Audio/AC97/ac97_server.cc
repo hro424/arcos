@@ -3,8 +3,11 @@
 #include <System.h>
 #include <String.h>
 #include <arch/io.h>
-#include "ac97.h"
+#include "ac97_server.h"
 
+addr_t AC97ServerChannel::_bm_base;
+
+/*
 void
 AC97::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
 {
@@ -84,11 +87,13 @@ AC97::TestInit()
         ptr += 0x100;
     }
 }
+*/
 
 
 stat_t
-AC97::Initialize()
+AC97Device::Initialize()
 {
+    System.Print("Initialize AC97 Audio Device\n");
     System.Print("VendorID:%.4lX DeviceID:%.4lX SVID:%.4lX SID:%.4lX BCC:%.2lX SCC:%.2lX\n",
                  PCI_Read16(ICH_AUDIO, PCI_VID),
                  PCI_Read16(ICH_AUDIO, PCI_DID),
@@ -97,7 +102,7 @@ AC97::Initialize()
                  PCI_Read8(ICH_AUDIO, PCI_BCC),
                  PCI_Read8(ICH_AUDIO, PCI_SCC));
 
-    DOUT("irq: %.2lX\n", PCI_Read8(ICH_AUDIO, PCI_INT_LN));
+    //_irq = PCI_Read8(ICH_AUDIO, PCI_INT_LN);
 
     // Disable the bus master to setup the bus master base address
     PCI_Write16(ICH_AUDIO, PCI_PCICMD, 0);
@@ -111,20 +116,24 @@ AC97::Initialize()
     SetBusMasterBaseAddress(MAPPED_IO_BASE + 1024);
 
     _mixer.Initialize(_mapped_io);
-    AC97Channel::Initialize(_mapped_io + 1024);
+    AC97ServerChannel::Initialize(_mapped_io + 1024);
 
-    _channels[0] = new AC97PCMIn();
-    _channels[1] = new AC97PCMOut();
-    _channels[2] = new AC97MicIn();
-    _channels[3] = new AC97Mic2();
-    _channels[4] = new AC97PCMIn2();
-    _channels[5] = new AC97SPDIFOut();
+    _channels[0] = new AC97ServerChannel(AC97_IO_PIBASE);
+    _channels[1] = new AC97ServerChannel(AC97_IO_POBASE);
+    _channels[2] = new AC97ServerChannel(AC97_IO_MCBASE);
+    _channels[3] = new AC97ServerChannel(AC97_IO_MC2BASE);
+    _channels[4] = new AC97ServerChannel(AC97_IO_PI2BASE);
+    _channels[5] = new AC97ServerChannel(AC97_IO_SPBASE);
+
+    for (int i = 0; i < 6; i++) {
+        _channels[i]->Print();
+    }
 
     // Activate the bus master
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);
 
-    TestInit();
+    //TestInit();
 
     return ERR_NONE;
 }

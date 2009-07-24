@@ -365,7 +365,8 @@ DeleteThread(Thread* thread)
     ENTER;
 
     stat = L4_AbortIpc_and_stop(thread->Id);
-    System.Print("aborted thread %.8lX state %lu\n", thread->Id.raw, stat.raw);
+    //System.Print("aborted thread %.8lX state %lu\n",
+    //             thread->Id.raw, stat.raw);
 
     if (L4_ThreadControl(thread->Id, L4_nilthread, L4_nilthread,
                          L4_nilthread, (void *)-1)) {

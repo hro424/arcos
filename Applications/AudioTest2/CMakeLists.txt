@@ -1,5 +1,5 @@
 ##
-##  Copyright (C) 2007, 2008, Waseda University.
+##  Copyright (C) 2008 Waseda University.
 ##  All rights reserved.
 ##
 ##  Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,21 @@
 ##
 
 ##
-##  @file   Services/Applications/CMakeLists.txt
-##  @since  2007
+##  @file   Applications/AudioTest2/CMakeLists.txt
+##  @since  2008
 ##
 
-#$Id: CMakeLists.txt 401 2008-09-04 08:31:45Z hro $
+#$Id: CMakeLists.txt 376 2008-08-08 07:53:32Z hro $
 
-add_subdirectory(Hello)
-add_subdirectory(DiskTest)
-add_subdirectory(FsTest)
-add_subdirectory(AudioTest)
-add_subdirectory(AudioTest2)
-add_subdirectory(Streaming)
-add_subdirectory(Fire)
-add_subdirectory(WavPlayer)
-add_subdirectory(Injector)
+set(MODULE_NAME audiotest2)
+list(APPEND LIBS)
+add_definitions(-DSYS_DEBUG)
+add_definitions(-DSYS_DEBUG_CALL)
+include(${CMAKE_SOURCE_DIR}/Tools/CMake/Application.cmake)
+
+add_custom_target(${MODULE_NAME}_rd
+    COMMAND ${MKRD} -a -o ${CMAKE_BINARY_DIR}/${RAMDISK} ${MODULE_NAME})
+add_dependencies(${MODULE_NAME}_rd ramdisk_pre)
+add_dependencies(${MODULE_NAME}_rd ${MODULE_NAME})
+add_dependencies(ramdisk ${MODULE_NAME}_rd)
+

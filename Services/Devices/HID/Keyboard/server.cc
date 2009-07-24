@@ -58,25 +58,25 @@ private:
     List<L4_ThreadId_t>     _listeners;
 
 public:
-    KeyAcceptor();
-    virtual ~KeyAcceptor();
-    virtual void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg);
-    void AddListener(L4_ThreadId_t tid);
-    void DelListener(L4_ThreadId_t tid);
-};
+    KeyAcceptor() {}
 
-KeyAcceptor::KeyAcceptor() {}
+    virtual ~KeyAcceptor()
+    {
+        L4_Msg_t                    msg;
+        Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
 
-KeyAcceptor::~KeyAcceptor()
-{
-    L4_Msg_t                    msg;
-    Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
-
-    L4_Put(&msg, MSG_EVENT_TERMINATE, 0, 0, 0, 0);
-    while (it.HasNext()) {
-        Ipc::Send(it.Next(), &msg);
+        L4_Put(&msg, MSG_EVENT_TERMINATE, 0, 0, 0, 0);
+        while (it.HasNext()) {
+            Ipc::Send(it.Next(), &msg);
+        }
     }
-}
+
+    virtual void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg);
+
+    void AddListener(L4_ThreadId_t tid) { _listeners.Add(tid); }
+
+    void DelListener(L4_ThreadId_t tid) { _listeners.Remove(tid); }
+};
 
 void
 KeyAcceptor::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg)
@@ -97,26 +97,10 @@ KeyAcceptor::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg)
 
     L4_Put(&event, MSG_EVENT_NOTIFY, 1, &data, 0, 0);
     while (it.HasNext()) {
-        L4_ThreadId_t th = it.Next();
-        Ipc::Send(th, &event);
+        Ipc::Send(it.Next(), &event);
     }
     EXIT;
 }
-
-void
-KeyAcceptor::AddListener(L4_ThreadId_t tid)
-{
-    _listeners.Add(tid);
-    DOUT("%.8lX registered\n", tid.raw);
-}
-
-void
-KeyAcceptor::DelListener(L4_ThreadId_t tid)
-{
-    _listeners.Remove(tid);
-    DOUT("%.8lX deregisterd\n", tid.raw);
-}
-
 
 
 static void

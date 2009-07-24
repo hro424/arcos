@@ -67,7 +67,6 @@ public:
     ///
     static const UInt   LOWEST_PRIORITY = 0;
 
-protected:
     ///
     /// Represents the ready state of a thread
     ///
@@ -84,6 +83,7 @@ protected:
     ///
     static const UByte  TERMINATED = 0xFF;
 
+protected:
     ///
     /// L4 thread ID
     ///
@@ -132,15 +132,6 @@ protected:
         _state_lock.Lock();
         _state = s;
         _state_lock.Unlock();
-    }
-
-
-    UByte GetState() {
-        UByte s;
-        _state_lock.Lock();
-        s = _state;
-        _state_lock.Unlock();
-        return s;
     }
 
 
@@ -195,17 +186,18 @@ public:
     /// Cancels current IPC
     ///
     stat_t Cancel() {
-        L4_Msg_t    msg;
-        stat_t      err;
-
+        L4_Msg_t msg;
         L4_Put(&msg, MSG_PEL_CANCEL, 1, &_tid.raw, 0, 0);
-        err = Ipc::Call(L4_Pager(), &msg, &msg);
-        if (err != ERR_NONE) {
-            return err;
-        }
-        return ERR_NONE;
+        return Ipc::Call(L4_Pager(), &msg, &msg);
     }
 
+    UByte GetState() {
+        UByte s;
+        _state_lock.Lock();
+        s = _state;
+        _state_lock.Unlock();
+        return s;
+    }
 
     Bool IsRunning() const { return _state == RUNNING; }
 

@@ -45,22 +45,6 @@
 
 InterruptManager* InterruptManager::_self = 0;
 
-InterruptManager::InterruptManager()
-{
-    for (UInt i = 0; i < NIRQ; i++) {
-        _iht_table[i] = 0;
-    }
-}
-
-InterruptManager*
-InterruptManager::Instance()
-{
-    if (_self == 0) {
-        _self = new InterruptManager;
-    }
-    return _self;
-}
-
 stat_t
 InterruptManager::Register(InterruptHandler* handler, UInt irq)
 {

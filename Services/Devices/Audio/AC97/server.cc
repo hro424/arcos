@@ -1,8 +1,15 @@
+///
+/// @brief  AC97 audio device driver
+/// @since  July 2009
+/// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
+///
+
 #include <Debug.h>
 #include <System.h>
 #include <String.h>
 #include <Server.h>
-#include "ac97.h"
+#include <AC97.h>
+#include "ac97_server.h"
 
 #include <PageAllocator.h>
 #include <MemoryManager.h>
@@ -11,7 +18,7 @@
 class AC97Server : public SelfHealingServer
 {
 private:
-    AC97    _device;
+    AC97Device  _device;
 
 protected:
     virtual stat_t IpcHandler(const L4_ThreadId_t& gid, L4_Msg_t& msg);
@@ -19,8 +26,10 @@ protected:
 public:
     virtual stat_t Initialize(Int argc, char* argv[])
     {
+        ENTER;
         _device.Initialize();
         _device.EnableInterrupt();
+        EXIT;
         return ERR_NONE;
     }
 
@@ -28,73 +37,112 @@ public:
 
     virtual stat_t Exit()
     {
+        ENTER;
         // Send EVENT_TERMINATE
         _device.DisableInterrupt();
         _device.Finalize();
+        EXIT;
         return ERR_NONE;
     }
 
     virtual const char* const Name() { return "ac97"; }
 
     stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-    { return ERR_NONE; }
+    {
+        L4_Word_t reg = _device.Id().raw;
+        L4_Put(&msg, ERR_NONE, 1, &reg, 0, 0);
+        return ERR_NONE;
+    }
 
     stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
+        ENTER;
         for (UInt i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
             _device.Channel(i)->Deactivate();
         }
+        EXIT;
         return ERR_NONE;
     }
 
     stat_t HandleStart(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
-        L4_ThreadId_t   handler;
-        L4_Word_t       type;
-        AC97Channel*    channel;
+        ENTER;
+        L4_ThreadId_t       handler;
+        L4_Word_t           type;
+        AC97ServerChannel*  channel;
         
         type = L4_Get(&msg, 0);
         handler.raw = L4_Get(&msg, 1);
         channel = _device.Channel(type);
         if (channel != 0) {
-            channel->SetHandler(handler);
+            _device.AddListener(handler);
             channel->Activate();
         }
 
+        EXIT;
         return ERR_NONE;
     }
 
     stat_t HandleStop(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
-        L4_Word_t       type;
-        AC97Channel*    channel;
+        ENTER;
+        L4_ThreadId_t       handler;
+        L4_Word_t           type;
+        AC97ServerChannel*  channel;
 
         type = L4_Get(&msg, 0);
+        handler.raw = L4_Get(&msg, 1);
         channel = _device.Channel(type);
         if (channel != 0) {
+            _device.DelListener(handler);
             channel->Deactivate();
         }
 
-        return ERR_NONE;
+        EXIT;
+        return Ipc::ReturnError(&msg, ERR_NONE);
     }
 
     stat_t HandleConfig(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
-        L4_Word_t       type = L4_Get(&msg, 0);
-        L4_Word_t       op = L4_Get(&msg, 1);
-        stat_t          err = ERR_NONE;
-        AC97Channel*    channel;
+        ENTER;
+        L4_Word_t           type = L4_Get(&msg, 0);
+        L4_Word_t           op = L4_Get(&msg, 1);
+        AC97ServerChannel*  channel;
 
+        DOUT("channel %lu\n", type);
         channel = _device.Channel(type);
         switch (op) {
-            case SET_BUFDESC:
+            case AC97Channel::set_bufdesc:
+            {
+                DOUT("\n");
+                //Hack
+                channel->SetLastValidIndex(0);
+                DOUT("\n");
+
                 channel->SetBufDescBase(L4_Get(&msg, 2));
+                DOUT("\n");
+                L4_Clear(&msg);
                 break;
+            }
+            case AC97Channel::get_stat:
+            {
+                UShort stat = channel->GetStatus();
+                L4_Clear(&msg);
+                L4_Put(&msg, ERR_NONE, 1, (L4_Word_t*)&stat, 0, 0);
+                break;
+            }
+            case AC97Channel::set_stat:
+            {
+                channel->SetStatus(L4_Get(&msg, 2));
+                L4_Clear(&msg);
+                break;
+            }
             default:
                 break;
         }
 
-        return err;
+        EXIT;
+        return ERR_NONE;
     }
 };
 

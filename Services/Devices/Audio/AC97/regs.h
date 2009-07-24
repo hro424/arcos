@@ -1,3 +1,8 @@
+///
+/// @brief  AC97 audio memory mapped registers
+/// @since  July 2009
+///
+
 #ifndef ARC_SERVICES_AUDIO_AC97_REGS_H
 #define ARC_SERVICES_AUDIO_AC97_REGS_H
 
