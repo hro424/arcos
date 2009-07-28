@@ -45,7 +45,7 @@
 
 class FileStream : public Stream
 {
-private:
+protected:
     Session*    _ss;
     Int         _offset;
     Int         _size;
@@ -72,31 +72,47 @@ public:
         SEEK_END =      2,
     };
 
-    stat_t Connect(L4_ThreadId_t tid);
+    virtual stat_t Connect(L4_ThreadId_t tid);
 
-    void Disconnect();
+    virtual void Disconnect() { delete _ss; }
 
-    stat_t Open(const char *path, UInt mode);
+    virtual stat_t Open(const char *path, UInt mode);
 
-    void Close();
+    virtual void Close()
+    {
+        if (_ss->End(0, 0) != ERR_NONE) {
+            //XXX: Recovery
+        }
+    }
 
-    virtual void Lock();
+    virtual void Lock() {}
 
-    virtual void Unlock();
+    virtual void Unlock() {}
 
-    virtual Int Read();
+    virtual Int Read()
+    {
+        Int     buf;
+        size_t  rsize;
+
+        if (Read(&buf, sizeof(Int), &rsize) == ERR_NONE) {
+            return buf;
+        }
+        else {
+            return 0;
+        }
+    }
 
     virtual stat_t Read(void* buf, size_t count, size_t* rsize);
 
-    virtual void Write(Int c);
+    virtual void Write(Int c) { /* not implemented */ }
 
     virtual stat_t Write(const void* buf, size_t count, size_t* wsize);
 
-    virtual void Flush();
+    virtual void Flush() { /* not implemented */ }
 
-    Int Seek(Int offset, UInt mode);
+    virtual Int Seek(Int offset, UInt mode);
 
-    Int Size();
+    virtual Int Size() { return _size; }
 };
 
 #endif // ARC_FILE_STREAM_H

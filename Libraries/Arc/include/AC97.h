@@ -22,7 +22,7 @@ struct AC97BufferDescriptor
     };
 };
 
-struct AC97Buffer : public AudioBuffer
+struct AC97DescriptorList : public AudioBuffer
 {
     // Limited to the size of L4 message registers
     static const size_t     SIZE = 32; 
@@ -88,9 +88,9 @@ public:
     AC97Channel(L4_ThreadId_t& server) : AudioChannel(server) {}
 
     virtual stat_t SetBuffer(const AudioBuffer& buf)
-    { return SetBuffer((const AC97Buffer*)&buf); }
+    { return SetBuffer((const AC97DescriptorList*)&buf); }
 
-    virtual stat_t SetBuffer(const AC97Buffer* buf)
+    virtual stat_t SetBuffer(const AC97DescriptorList* buf)
     {
         L4_Word_t reg = Pager.Phys((addr_t)buf);
         return Config(AC97Channel::set_bufdesc, &reg);
@@ -117,27 +117,26 @@ public:
     { SetVolume(GetVolumeLeft() & ((UInt)vol)); }
     */
 
-    virtual UShort GetStatus()
+    virtual UInt GetStatus()
     {
         UInt arg;
         Config(AC97Channel::get_stat, &arg);
-        return (UShort)(arg & 0xFF);
+        return arg;
     }
 
-    virtual void SetStatus(UShort arg)
+    virtual void SetStatus(UInt arg)
     {
-        L4_Word_t reg = arg;
-        Config(AC97Channel::set_stat, &reg);
+        Config(AC97Channel::set_stat, &arg);
     }
 
-    virtual UInt GetPosition()
+    virtual UInt GetIndex()
     {
         UInt arg;
         Config(AC97Channel::get_lvi, &arg);
         return arg;
     }
 
-    virtual void SetPosision(UInt arg)
+    virtual void SetIndex(UInt arg)
     { Config(AC97Channel::set_lvi, &arg); }
 };
 

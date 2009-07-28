@@ -125,16 +125,14 @@ public:
             }
             case AC97Channel::get_stat:
             {
-                L4_Word_t stat = channel->GetStatus();
+                L4_Word_t stat = channel->GetStatus32();
                 L4_Clear(&msg);
                 L4_Put(&msg, ERR_NONE, 1, &stat, 0, 0);
                 break;
             }
             case AC97Channel::set_stat:
             {
-                channel->SetStatus(L4_Get(&msg, 2));
-                channel->SetLastValidIndex(1);
-                channel->SetLastValidIndex(0);
+                channel->SetStatus32(L4_Get(&msg, 2));
                 L4_Clear(&msg);
                 break;
             }

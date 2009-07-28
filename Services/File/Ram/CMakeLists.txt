@@ -31,8 +31,6 @@
 ##  @since  September 2008
 ##
 
-#$Id: CMakeLists.txt 395 2008-09-02 11:49:54Z hro $
-
 set(MODULE_NAME ram)
 set(VERBOSE_LEVEL 3)
 

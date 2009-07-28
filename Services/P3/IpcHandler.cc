@@ -152,6 +152,7 @@ begin:
             case MSG_ROOT_DEL_TSK:
             case MSG_ROOT_RESTART:
             case MSG_ROOT_INJECT:
+            case MSG_ROOT_FIND_AS:
                 err = Ipc::Call(Pel::RootTask(), &msg, &msg);
                 break;
             case MSG_ROOT_NS:

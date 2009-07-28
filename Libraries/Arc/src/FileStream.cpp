@@ -66,14 +66,6 @@ FileStream::Connect(L4_ThreadId_t tid)
     return ERR_NONE;
 }
 
-void
-FileStream::Disconnect()
-{
-    ENTER;
-    delete _ss;
-    EXIT;
-}
-
 stat_t
 FileStream::Open(const char *path, UInt mode)
 {
@@ -97,28 +89,6 @@ FileStream::Open(const char *path, UInt mode)
 
     EXIT;
     return ERR_NONE;
-}
-
-void
-FileStream::Close()
-{
-    ENTER;
-    if (_ss->End(0, 0) != ERR_NONE) {
-        //XXX: Recovery
-    }
-    EXIT;
-}
-
-void
-FileStream::Lock() {}
-
-void
-FileStream::Unlock() {}
-
-Int
-FileStream::Read()
-{
-    return 0;
 }
 
 stat_t
@@ -185,10 +155,6 @@ FileStream::Read(void *buffer, size_t count, size_t* rsize)
     return ERR_NONE;
 }
 
-void
-FileStream::Write(Int c)
-{
-}
 
 stat_t
 FileStream::Write(const void *buffer, size_t count, size_t* wsize)
@@ -248,10 +214,6 @@ FileStream::Write(const void *buffer, size_t count, size_t* wsize)
     return ERR_NONE;
 }
 
-void
-FileStream::Flush()
-{
-}
 
 Int
 FileStream::Seek(Int offset, UInt mode)
@@ -273,9 +235,4 @@ FileStream::Seek(Int offset, UInt mode)
     return _offset;
 }
 
-Int
-FileStream::Size()
-{
-    return _size;
-}
 

@@ -109,6 +109,7 @@
 #define MSG_ROOT_SNAPSHOT           0x00E0
 #define MSG_ROOT_RESTORE            0x00F0
 #define MSG_ROOT_KILL               0x0100
+#define MSG_ROOT_FIND_AS            0x0110
 #define MSG_ROOT_INJECT             0x0200
 
 //

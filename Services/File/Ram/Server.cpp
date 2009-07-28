@@ -221,6 +221,7 @@ RamFsServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     base = L4_Get(&msg, 0);
     client = static_cast<RamClient*>(Search(tid, base));
 
+    DOUT("tid %.8lX base %.8lX\n", tid.raw, base);
     if (client == 0 || client->file == 0) {
         L4_Clear(&msg);
         L4_Set_Label(&msg, ERR_NOT_FOUND);

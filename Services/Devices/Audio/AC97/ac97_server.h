@@ -108,6 +108,10 @@ public:
 
     UShort GetStatus() { return BMRead16(AC97_IO_SR(ChannelBase())); }
 
+    void SetStatus32(UInt stat) { BMWrite32(AC97_IO_CIV(ChannelBase()), stat); }
+
+    UInt GetStatus32() { return BMRead32(AC97_IO_CIV(ChannelBase())); }
+
     UShort GetPosition() { return BMRead16(AC97_IO_PICB(ChannelBase())); }
 
     UByte GetPrefetchedIndex() { return BMRead8(AC97_IO_PIV(ChannelBase())); }

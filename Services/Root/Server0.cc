@@ -110,6 +110,8 @@ static stat_t HandleSnapshot(L4_ThreadId_t tid, L4_Msg_t *msg);
 ///
 static stat_t HandleRestore(L4_ThreadId_t tid, L4_Msg_t *msg);
 
+static stat_t HandleFindAS(L4_ThreadId_t tid, L4_Msg_t* msg);
+
 static stat_t HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg);
 
 
@@ -196,6 +198,9 @@ begin:
                 break;
             case MSG_ROOT_INJECT:
                 HandleInject(peer, &msg);
+                break;
+            case MSG_ROOT_FIND_AS:
+                HandleFindAS(peer, &msg);
                 break;
             case MSG_NS_SEARCH:
                 DOUT("ns search from %.8lX\n", peer.raw);
@@ -764,5 +769,22 @@ HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg)
 
     L4_Put(&m, MSG_PEL_INJECT, 1, &area, 0, 0);
     return Ipc::Send(space->GetPager(), &m);
+}
+
+static stat_t
+HandleFindAS(L4_ThreadId_t tid, L4_Msg_t* msg)
+{
+    Space*          space;
+    L4_ThreadId_t   id;
+
+    id.raw = L4_Get(msg, 0);
+    if (FindTask(id, &space) == ERR_NONE) {
+        L4_Word_t reg = space->GetRootThread()->Id.raw;
+        L4_Put(msg, ERR_NONE, 1, &reg, 0, 0);
+    }
+    else {
+        L4_Put(msg, ERR_NOT_FOUND, 0, 0, 0, 0);
+    }
+    return ERR_NONE;
 }
 

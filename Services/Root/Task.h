@@ -68,7 +68,7 @@ stat_t DeleteTask(Space *space);
 
 ///
 /// Finds the address space object to which the specified thread is
-/// running.  Any member thread can be given to this function.
+/// running.
 ///
 /// @param tid      the thread
 /// @param space    the address space object where the thread blongs

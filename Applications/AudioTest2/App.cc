@@ -11,24 +11,24 @@ class MyListener : public AudioChannelListener
 {
 private:
     AC97Channel*    _channel;
-    AC97Buffer*     _buffer;
+    AC97DescriptorList*     _buffer;
     UShort*         _data_buf;
 
 public:
     MyListener(AC97Channel* c) : _channel(c)
     {
-        _buffer = (AC97Buffer*)palloc(1);
+        _buffer = (AC97DescriptorList*)palloc(1);
         Pager.Map((addr_t)_buffer, L4_ReadWriteOnly);
 
-        for (size_t i = 0; i < AC97Buffer::SIZE; i++) {
+        for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
             memset(&_buffer->desc[i], 0, sizeof(AC97BufferDescriptor));
         }
 
         _data_buf = (UShort*)palloc(1);
         Pager.Map((addr_t)_data_buf, L4_ReadWriteOnly);
-        memset(_data_buf, 0, 0x1000);
+        memset(_data_buf, 0, PAGE_SIZE);
         _buffer->desc[0].address = Pager.Phys((addr_t)_data_buf);
-        _buffer->desc[0].length = 0x1000;
+        _buffer->desc[0].length = PAGE_SIZE;
         _buffer->desc[0].ioc = 1;
 
         DOUT("size: %d\n", sizeof(AC97BufferDescriptor));
@@ -44,18 +44,66 @@ public:
         pfree((addr_t)_buffer, 1);
     }
 
-    AC97Buffer* GetBuffer() { return _buffer; }
+    AC97DescriptorList* GetBuffer() { return _buffer; }
+
+    /*
+    UInt factorial(UInt n)
+    {
+        UInt ret = n;
+        while (n > 2) {
+            n--;
+            ret = ret * n;
+        }
+        return ret;
+    }
+
+    Int power(Int x, UInt n)
+    {
+        if (n == 0) {
+            return 1;
+        }
+
+        Int ret = x;
+        for (UInt i = 1; i < n; i++) {
+            ret *= x;
+        }
+        return ret;
+    }
+
+    Int sin(Int x, UInt n)
+    {
+        Int ret = 0;
+        for (int i = 0; i < n; i++) {
+            UInt j = 2 * i + 1;
+            Int p = power(x, j) / factorial(j);
+            if (i % 2 == 0) {
+                ret += p;
+            }
+            else {
+                ret -= p;
+            }
+        }    
+        return ret;
+    }
+
+    Int sin(Int x) { return sin(x, 4); }
+
+    void FillBuffer(UShort* buf, size_t len)
+    {
+    }
+    */
 
     void Handle()
     {
-        UShort stat = _channel->GetStatus();
+        UInt stat = _channel->GetStatus();
         DOUT("stat: %.8lX\n", stat);
+        UByte lvi = (stat >> 8) & 0xFF;
 
         Bool ceil = false;
         Short sample = 0;
         Short sample_step = 4;
         int start = 0;
-        int end = 2048;
+        int end = PAGE_SIZE / sizeof(UShort);
         for (int i = start; i < end; i++) {
             if (!ceil) {
                 sample += sample_step;
@@ -74,8 +122,11 @@ public:
             _data_buf[i] = sample;
         }
 
-        _buffer->desc[0].length = 0x1000;
-        _buffer->desc[0].ioc = 1;
+        lvi = (lvi == AC97DescriptorList::SIZE - 1) ? 0 : lvi + 1;
+        _buffer->desc[lvi].address = Pager.Phys((addr_t)_data_buf);
+        _buffer->desc[lvi].length = 0x1000;
+        _buffer->desc[lvi].ioc = 1;
+        stat = (stat & ~0xFF00) | (lvi << 8);
         _channel->SetStatus(stat);
     }
 };
@@ -103,7 +154,7 @@ main(int argc, char* argv[])
     }
 
     //channel.SetVolume(0x0A0A);
-    AC97Buffer* buf = listener.GetBuffer();
+    AC97DescriptorList* buf = listener.GetBuffer();
     DOUT("user bufdesc list @ %p\n", buf);
     channel.SetBuffer(buf);
     channel.SetListener((AudioChannelListener*)&listener);
@@ -112,11 +163,6 @@ main(int argc, char* argv[])
         System.Print("Channel is busy.\n");
         return -1;
     }
-
-    /*
-    buf->desc[0].length = 0x1000;
-    buf->desc[0].ioc = 1;
-    */
 
     L4_Sleep(L4_TimePeriod(10000000));
 

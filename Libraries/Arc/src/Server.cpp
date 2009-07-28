@@ -181,7 +181,8 @@ exit:
 void
 SessionServer::Register(const L4_ThreadId_t& tid, addr_t base, size_t size)
 {
-    SessionClient*  c = new SessionClient(tid, base, size);
+    L4_ThreadId_t   sid = FindSpace(tid);
+    SessionClient*  c = new SessionClient(sid, base, size);
     if (c == 0) {
         //XXX
         return;
@@ -199,10 +200,11 @@ SessionServer::Deregister(SessionClient* c)
 SessionClient*
 SessionServer::Search(const L4_ThreadId_t& tid, addr_t base)
 {
+    L4_ThreadId_t   sid = FindSpace(tid);
     Iterator<SessionClient*>& it = _clients.GetIterator();
     while (it.HasNext()) {
         SessionClient* c = it.Next();
-        if (L4_IsThreadEqual(c->tid, tid) && c->base == base) {
+        if (L4_IsThreadEqual(c->tid, sid) && c->base == base) {
             return c;
         }
     }
