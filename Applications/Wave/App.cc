@@ -18,7 +18,7 @@ private:
     WaveStream*         _stream;
     AC97Channel*        _channel;
     AC97DescriptorList* _list;
-    UShort*             _data_buf;
+    UByte*              _data_buf;
 
 public:
     static const size_t BUFFER_SIZE = 1024;
@@ -36,19 +36,26 @@ public:
         }
 
         // Allocate the buffer where audio data is stored.
-        _data_buf = (UShort*)palloc(8);
-        Pager.Map((addr_t)_data_buf, L4_ReadWriteOnly);
+        _data_buf = (UByte*)palloc(8);
+        for (int i = 0; i < 8; i++) {
+            Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
+            DOUT("map %.8lX -> %.8lX\n",
+                 Pager.Phys(((addr_t)_data_buf) + PAGE_SIZE * i),
+                 ((addr_t)_data_buf) + PAGE_SIZE * i);
+        }
+
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
 
         // Initialize the buffer descriptors
-        data_buf_phys = Pager.Phys((addr_t)_data_buf);
-        DOUT("virt %.8lX phys %.8lX\n", (addr_t)_data_buf, data_buf_phys);
         for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
-            _list->desc[i].address = data_buf_phys + BUFFER_SIZE * i;
+            _list->desc[i].address =
+                    Pager.Phys(((addr_t)_data_buf) + BUFFER_SIZE * i);
             _list->desc[i].length = BUFFER_SIZE;
+
             if (i % NUM_SLOT == NUM_SLOT - 1) {
                 _list->desc[i].ioc = 1;
             }
+
             DOUT("desc[%u] %.8lX %.8lX\n",
                  i, _list->desc[i].raw[0], _list->desc[i].raw[1]);
         }
@@ -84,7 +91,7 @@ public:
             index = lvi - (NUM_SLOT - 1);
 
             stat_t err = _stream->Read(_data_buf + BUFFER_SIZE * index,
-                                BUFFER_SIZE * NUM_SLOT, &rsize);
+                                       BUFFER_SIZE * NUM_SLOT, &rsize);
             if (err != ERR_NONE) {
                 DOUT("%s\n", stat2msg[err]);
                 BREAK("err");
@@ -111,7 +118,7 @@ public:
 
 
 #define FILE_SERVER     "ram"
-#define AUDIO_FILE      "sin_1000.wav"
+#define AUDIO_FILE      "test.wav"
 
 int
 main(int argc, char* argv[])
@@ -151,13 +158,16 @@ main(int argc, char* argv[])
     DOUT("user bufdesc list @ %p\n", buf);
     channel.SetBuffer(buf);
     channel.SetListener((AudioChannelListener*)&listener);
+
+    System.Print("Playing '%s'...\n", AUDIO_FILE);
+
     err = channel.Start();
     if (err != ERR_NONE) {
         System.Print("Channel is busy.\n");
         return -1;
     }
 
-    L4_Sleep(L4_TimePeriod(10000000));
+    L4_Sleep(L4_TimePeriod(20000000));
 
     channel.Stop();
     channel.Disconnect();

@@ -141,7 +141,9 @@ MemoryManager::Phys(addr_t virt)
     L4_Msg_t    msg;
     addr_t      offset;
 
-    offset = virt & ~PAGE_MASK;
+    //offset = virt & ~PAGE_MASK;
+    offset = virt % PAGE_SIZE;
+    virt &= PAGE_MASK;
     L4_Put(&msg, MSG_PAGER_PHYS, 1, &virt, 0, 0);
     if (Ipc::Call(L4_Pager(), &msg, &msg) != ERR_NONE) {
         return ~0UL;

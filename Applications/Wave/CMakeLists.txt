@@ -30,8 +30,6 @@
 ##  @since  July 2009
 ##
 
-#$Id: CMakeLists.txt 376 2008-08-08 07:53:32Z hro $
-
 set(MODULE_NAME wave)
 list(APPEND LIBS)
 add_definitions(-DSYS_DEBUG)
