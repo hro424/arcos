@@ -48,6 +48,7 @@ public:
             else if (L4_Label(tag) == MSG_EVENT_TERMINATE) {
                 break;
             }
+            L4_Send(_server);
         }
         EXIT;
     }

@@ -14,14 +14,14 @@
 class MyListener : public AudioChannelListener
 {
 private:
-    static const size_t NUM_SLOT = 4;
+    static const size_t NUM_SLOT = 8;
     WaveStream*         _stream;
     AC97Channel*        _channel;
     AC97DescriptorList* _list;
     UByte*              _data_buf;
 
 public:
-    static const size_t BUFFER_SIZE = 1024;
+    static const size_t BUFFER_SIZE = PAGE_SIZE * 2;
 
     MyListener(WaveStream* f, AC97Channel* c) : _stream(f), _channel(c)
     {
@@ -36,12 +36,12 @@ public:
         }
 
         // Allocate the buffer where audio data is stored.
-        _data_buf = (UByte*)palloc(8);
+        _data_buf = (UByte*)palloc(BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
         for (int i = 0; i < 8; i++) {
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
-            DOUT("map %.8lX -> %.8lX\n",
-                 Pager.Phys(((addr_t)_data_buf) + PAGE_SIZE * i),
-                 ((addr_t)_data_buf) + PAGE_SIZE * i);
+            //DOUT("map %.8lX -> %.8lX\n",
+            //     Pager.Phys(((addr_t)_data_buf) + PAGE_SIZE * i),
+            //     ((addr_t)_data_buf) + PAGE_SIZE * i);
         }
 
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
@@ -60,12 +60,13 @@ public:
                  i, _list->desc[i].raw[0], _list->desc[i].raw[1]);
         }
 
-        _channel->SetStatus(7 << 8);
+        _channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
     }
 
     virtual ~MyListener()
     {
-        pfree((addr_t)_data_buf, 8);
+        pfree((addr_t)_data_buf,
+              BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
         pfree((addr_t)_list, 1);
     }
 
@@ -77,13 +78,13 @@ public:
         UInt    stat;
         UInt    index;
         UByte   lvi;
-        UByte   sr;
+        UShort  sr;
 
         stat = _channel->GetStatus();
         lvi = (stat >> 8) & 0xFF;
         sr = stat >> 16;
 
-        DOUT("\tstat:\t%.4lX %u %u\n", sr, lvi, stat & 0xFF);
+        //DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
 
         if (sr == 0x8) {
             // Calculate the next LVI
@@ -97,7 +98,6 @@ public:
                 BREAK("err");
             }
 
-            DOUT("next lvi %u index %u read %u\n", lvi, index, rsize);
             for (UInt i = index; i < index + NUM_SLOT; i++) {
                 if (rsize / BUFFER_SIZE > 0) {
                     _list->desc[i].length = BUFFER_SIZE;
@@ -110,7 +110,7 @@ public:
             }
 
             stat = (stat & ~0xFF00) | (lvi << 8);
-            DOUT("\tupdate:\t%.4lX %u %u\n", sr, lvi, stat & 0xFF);
+            //DOUT("\tupdate:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         }
         _channel->SetStatus(stat);
     }

@@ -153,6 +153,10 @@ protected:
 public:
     void Initialize(addr_t base) { _mixer_base = base; }
 
+    void SetReset(UShort val) { MixerWrite(AC97_IO_RESET, val); }
+
+    UShort GetReset() { return MixerRead(AC97_IO_RESET); }
+
     void SetMasterVolume(UShort vol) { MixerWrite(AC97_IO_MASTER_VOL, vol); }
 
     UShort GetMasterVolume() { return MixerRead(AC97_IO_MASTER_VOL); }
@@ -172,6 +176,35 @@ public:
     void SetPCMOutVolume(UShort vol) { MixerWrite(AC97_IO_PCMOUT_VOL, vol); }
 
     UShort GetPCMOutVolume() { return MixerRead(AC97_IO_PCMOUT_VOL); }
+
+    UShort GetExtAudioID() { return MixerRead(AC97_IO_EXT_AUDIO); }
+
+    UShort GetExtAudioStatus() { return MixerRead(AC97_IO_EXT_AUDIO_CTRL); }
+
+    void SetExtAudioStatus(UShort stat)
+    { MixerWrite(AC97_IO_EXT_AUDIO_CTRL, stat); }
+
+    void SetPCMFrontSamplingRate(UShort rate)
+    { MixerWrite(AC97_IO_PCM_FRONT_DAC, rate); }
+
+    UShort GetPCMFrontSamplingRate()
+    { return MixerRead(AC97_IO_PCM_FRONT_DAC); }
+
+    void SetPCMSurrSamplingRate(UShort rate)
+    { MixerWrite(AC97_IO_PCM_SURR_DAC, rate); }
+
+    UShort GetPCMSurrSamplingRate()
+    { return MixerRead(AC97_IO_PCM_SURR_DAC); }
+
+    void SetPCMLFESamplingRate(UShort rate)
+    { MixerWrite(AC97_IO_PCM_LFE_DAC, rate); }
+
+    UShort GetPCMLFESamplingRate() { return MixerRead(AC97_IO_PCM_LFE_DAC); }
+
+    void SetPCMLRSamplingRate(UShort rate)
+    { MixerWrite(AC97_IO_PCM_LR_ADC, rate); }
+
+    UShort GetPCMLRSamplingRate() { return MixerRead(AC97_IO_PCM_LR_ADC); }
 
     friend class AC97Device;
 };
@@ -281,7 +314,7 @@ public:
         L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
         while (it.HasNext()) {
             L4_ThreadId_t th = it.Next();
-            Ipc::Send(th, &event);
+            Ipc::Call(th, &event, &event);
         }
     }
 

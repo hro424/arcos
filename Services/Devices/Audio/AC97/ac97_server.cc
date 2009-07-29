@@ -33,6 +33,7 @@ AC97Device::Initialize()
     SetBusMasterBaseAddress(MAPPED_IO_BASE + 1024);
 
     _mixer.Initialize(_mapped_io);
+
     AC97ServerChannel::Initialize(_mapped_io + 1024);
 
     _channels[0] = new AC97ServerChannel(AC97_IO_PIBASE);

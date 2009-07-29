@@ -29,8 +29,10 @@ public:
         ENTER;
         _device.Initialize();
         _device.EnableInterrupt();
+
         _device.Mixer()->SetMasterVolume(0x0808);
         _device.Mixer()->SetPCMOutVolume(0x0808);
+
         EXIT;
         return ERR_NONE;
     }

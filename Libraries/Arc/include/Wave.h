@@ -32,7 +32,6 @@ struct WaveFormatChunk
     UInt            avg_bps;
     UShort          block_size;
     UShort          bps;
-    UShort          cbsize;
 };
 
 
@@ -128,22 +127,18 @@ public:
 
         err = ReadChunkHeader(WaveFileChunk::ID, &header);
         if (err != ERR_NONE) {
-            DOUT("Non-wave format [0]\n");
             CloseStream();
             return err;
         }
 
         FileStream::Read(buf, 4, &rsize);
-        DOUT("'%c%c%c%c'\n", buf[0], buf[1], buf[2], buf[3]);
         if (strncmp(buf, WaveFileChunk::WAVE_ID, 4) != 0) {
-            DOUT("Non-wave format [1]\n");
             CloseStream();
             return ERR_NOT_FOUND;
         }
 
         err = ReadChunkHeader(WaveFormatChunk::ID, &header);
         if (err != ERR_NONE) {
-            DOUT("Non-wave format [2]\n");
             CloseStream();
             return err;
         }
@@ -156,9 +151,13 @@ public:
 
         FileStream::Read((void*)_format, header.chunk_size, &rsize);
 
+        DOUT("tag:%.4lX ch:%.4lX rate:%u avg:%u blk:%u bps:%u\n",
+             _format->format_tag, _format->num_channels,
+             _format->sampling_rate, _format->avg_bps, _format->block_size,
+             _format->bps);
+
         err = ReadChunkHeader(WaveDataChunk::ID, &header);
         if (err != ERR_NONE) {
-            DOUT("Non-wave format[3]\n");
             mfree(_format);
             CloseStream();
             return err;
@@ -170,6 +169,7 @@ public:
         return ERR_NONE;
     }
 
+    /*
     virtual stat_t Read(void* buf, size_t count, size_t* rsz)
     {
         ENTER;
@@ -177,6 +177,7 @@ public:
         EXIT;
         return err;
     }
+    */
 
     virtual void Close()
     {
