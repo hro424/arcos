@@ -89,7 +89,7 @@ Register(const char *name, L4_ThreadId_t tid)
 
     reg = (L4_Word_t *)malloc(sizeof(L4_Word_t) * (len + 1));
     reg[0] = tid.raw;
-    memcpy(&reg[1], base_name, strlen(name) + 1);
+    memcpy(&reg[1], base_name, strlen(base_name) + 1);
     L4_Put(&msg, MSG_NS_INSERT, len + 1, reg, 0, 0);
     err = Ipc::Call(Pel::RootTask(), &msg, &msg);
     mfree(reg);
@@ -114,7 +114,7 @@ Deregister(const char* name)
     }
 
     reg = (L4_Word_t *)malloc(sizeof(L4_Word_t) * len);
-    memcpy(reg, base_name, strlen(name) + 1);
+    memcpy(reg, base_name, strlen(base_name) + 1);
     L4_Put(&msg, MSG_NS_REMOVE, len, reg, 0, 0);
     err = Ipc::Call(Pel::RootTask(), &msg, &msg);
     mfree(reg);
