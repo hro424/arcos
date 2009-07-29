@@ -56,6 +56,22 @@
 
 SystemHelper System(VERBOSE_LEVEL, &__dstream);
 
+static const char*
+get_base_name(const char* name)
+{
+    char*   ptr = (char*)name;
+    char*   base = ptr;
+
+    while (*ptr != 0) {
+        if (*ptr == '/') {
+            base = ptr + 1;
+        }
+        ptr++;
+    }
+
+    return base;
+}
+
 static stat_t
 Register(const char *name, L4_ThreadId_t tid)
 {
@@ -65,14 +81,15 @@ Register(const char *name, L4_ThreadId_t tid)
     stat_t      err;
     ENTER;
 
-    len = (strlen(name) + 1 + sizeof(L4_Word_t) - 1) / sizeof(L4_Word_t);
+    const char* base_name = get_base_name(name);
+    len = (strlen(base_name) + 1 + sizeof(L4_Word_t) - 1) / sizeof(L4_Word_t);
     if (len >= __L4_NUM_MRS - 1) {
         len = __L4_NUM_MRS - 2;
     }
 
     reg = (L4_Word_t *)malloc(sizeof(L4_Word_t) * (len + 1));
     reg[0] = tid.raw;
-    memcpy(&reg[1], name, strlen(name) + 1);
+    memcpy(&reg[1], base_name, strlen(name) + 1);
     L4_Put(&msg, MSG_NS_INSERT, len + 1, reg, 0, 0);
     err = Ipc::Call(Pel::RootTask(), &msg, &msg);
     mfree(reg);
@@ -89,14 +106,15 @@ Deregister(const char* name)
     L4_Word_t*  reg;
     stat_t      err;
 
-    System.Print("deregister '%s'\n", name);
-    len = (strlen(name) + 1 + sizeof(L4_Word_t) - 1) / sizeof(L4_Word_t);
+    const char* base_name = get_base_name(name);
+    System.Print("deregister '%s'\n", base_name);
+    len = (strlen(base_name) + 1 + sizeof(L4_Word_t) - 1) / sizeof(L4_Word_t);
     if (len >= __L4_NUM_MRS - 1) {
         len = __L4_NUM_MRS - 2;
     }
 
     reg = (L4_Word_t *)malloc(sizeof(L4_Word_t) * len);
-    memcpy(reg, name, strlen(name) + 1);
+    memcpy(reg, base_name, strlen(name) + 1);
     L4_Put(&msg, MSG_NS_REMOVE, len, reg, 0, 0);
     err = Ipc::Call(Pel::RootTask(), &msg, &msg);
     mfree(reg);
