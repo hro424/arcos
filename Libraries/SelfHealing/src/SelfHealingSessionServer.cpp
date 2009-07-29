@@ -59,9 +59,10 @@ void
 SelfHealingSessionServer::Register(const L4_ThreadId_t& tid, addr_t base,
                                    size_t size)
 {
+    L4_ThreadId_t   sid = FindSpace(tid);
     if (__scb_length < SCB_MAXLEN) {
         __scb_length++;
-        __scb[__scb_length - 1].tid = tid;
+        __scb[__scb_length - 1].tid = sid;
         __scb[__scb_length - 1].base = base;
         __scb[__scb_length - 1].size = size;
         __scb[__scb_length - 1].data = -1;
@@ -75,9 +76,10 @@ SelfHealingSessionServer::Deregister(const L4_ThreadId_t& tid, addr_t base)
         return;
     }
 
+    L4_ThreadId_t   sid = FindSpace(tid);
     // Overwrite the removing target with the last valid element of the array.
     for (int i = 0; i < __scb_length - 1; i++) {
-        if (L4_IsThreadEqual(__scb[i].tid, tid) &&
+        if (L4_IsThreadEqual(__scb[i].tid, sid) &&
             __scb[i].base == base) {
             __scb[i] = __scb[__scb_length - 1];
             break;
@@ -99,8 +101,9 @@ SelfHealingSessionServer::Deregister(SessionControlBlock* c)
 SessionControlBlock*
 SelfHealingSessionServer::Search(const L4_ThreadId_t& tid, addr_t base)
 {
+    L4_ThreadId_t   sid = FindSpace(tid);
     for (int i = 0; i < __scb_length; i++) {
-        if (L4_IsThreadEqual(__scb[i].tid, tid) &&
+        if (L4_IsThreadEqual(__scb[i].tid, sid) &&
             __scb[i].base == base) {
             return &__scb[i];
         }

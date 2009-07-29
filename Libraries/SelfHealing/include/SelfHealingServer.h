@@ -66,6 +66,16 @@ protected:
     virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg);
 
+    L4_ThreadId_t FindSpace(L4_ThreadId_t t)
+    {
+        L4_Msg_t        msg;
+        L4_ThreadId_t   sid;
+        L4_Put(&msg, MSG_ROOT_FIND_AS, 1, &t.raw, 0, 0);
+        Ipc::Call(L4_Pager(), &msg, &msg);
+        sid.raw = L4_Get(&msg, 0);
+        return sid;
+    }
+
 public:
     static const int NUM_CLIENTS = 10;
 
