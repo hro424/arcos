@@ -43,13 +43,14 @@ AC97Device::Initialize()
     _channels[4] = new AC97ServerChannel(AC97_IO_PI2BASE);
     _channels[5] = new AC97ServerChannel(AC97_IO_SPBASE);
 
-    for (int i = 0; i < 6; i++) {
-        _channels[i]->Print();
-    }
-
     // Activate the bus master
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);
+
+    for (int i = 0; i < 6; i++) {
+        _channels[i]->Reset();
+        _channels[i]->Print();
+    }
 
     return ERR_NONE;
 }

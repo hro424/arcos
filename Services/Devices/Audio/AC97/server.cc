@@ -28,10 +28,11 @@ public:
     {
         ENTER;
         _device.Initialize();
-        _device.EnableInterrupt();
 
         _device.Mixer()->SetMasterVolume(0x0808);
         _device.Mixer()->SetPCMOutVolume(0x0808);
+
+        _device.EnableInterrupt();
 
         EXIT;
         return ERR_NONE;
@@ -65,6 +66,7 @@ public:
         ENTER;
         for (UInt i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
             _device.Channel(i)->Deactivate();
+            _device.Channel(i)->Reset();
         }
         EXIT;
         return ERR_NONE;

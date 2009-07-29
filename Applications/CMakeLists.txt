@@ -30,14 +30,9 @@
 ##  @since  2007
 ##
 
-#$Id: CMakeLists.txt 401 2008-09-04 08:31:45Z hro $
-
 add_subdirectory(Hello)
 add_subdirectory(DiskTest)
 add_subdirectory(FsTest)
-add_subdirectory(AudioTest)
-add_subdirectory(AudioTest2)
-add_subdirectory(Streaming)
 add_subdirectory(Fire)
 add_subdirectory(WavPlayer)
 add_subdirectory(Injector)

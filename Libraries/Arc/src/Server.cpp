@@ -49,6 +49,7 @@
 #include <Types.h>
 #include <l4/ipc.h>
 
+
 stat_t
 BasicServer::Run()
 {
@@ -92,18 +93,6 @@ begin:
     }
 exit:
     return err;
-}
-
-stat_t
-BasicServer::Exit()
-{
-    return ERR_NONE;
-}
-
-stat_t
-BasicServer::IpcHandler(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    return ERR_NONE;
 }
 
 // The last client
@@ -178,25 +167,6 @@ exit:
     return err;
 }
 
-void
-SessionServer::Register(const L4_ThreadId_t& tid, addr_t base, size_t size)
-{
-    L4_ThreadId_t   sid = FindSpace(tid);
-    SessionClient*  c = new SessionClient(sid, base, size);
-    if (c == 0) {
-        //XXX
-        return;
-    }
-    _clients.Append(c);
-}
-
-void
-SessionServer::Deregister(SessionClient* c)
-{
-    _clients.Remove(c);
-    delete c;
-}
-
 SessionClient*
 SessionServer::Search(const L4_ThreadId_t& tid, addr_t base)
 {
@@ -210,7 +180,6 @@ SessionServer::Search(const L4_ThreadId_t& tid, addr_t base)
     }
     return 0;
 }
-
 
 stat_t
 SessionServer::HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
@@ -249,35 +218,6 @@ SessionServer::HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     Deregister(c);
     L4_Clear(&msg);
     EXIT;
-    return ERR_NONE;
-}
-
-stat_t
-SessionServer::HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SessionServer::HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SessionServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SessionServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    System.Print("WRONG HANDLER %.8lX\n", L4_Myself().raw);
-    L4_Clear(&msg);
     return ERR_NONE;
 }
 

@@ -15,7 +15,7 @@ struct AudioBuffer
 class AudioChannelListener
 {
 public:
-    virtual void Handle() = 0;
+    virtual Int Handle() = 0;
 };
 
 class AudioIntWrapper : public Thread<>
@@ -42,7 +42,9 @@ public:
 
             if (L4_Label(tag) == MSG_EVENT_NOTIFY) {
                 if (_listener != 0) {
-                    _listener->Handle();
+                    if (_listener->Handle() == 0) {
+                        break;
+                    }
                 }
             }
             else if (L4_Label(tag) == MSG_EVENT_TERMINATE) {
@@ -146,6 +148,11 @@ public:
         err = Ipc::Send(_server, &msg);
         _int_thread->Cancel();
         EXIT;
+    }
+
+    virtual void Join()
+    {
+        _int_thread->Join();
     }
 
     /*

@@ -29,7 +29,7 @@ struct WaveFormatChunk
     UShort          format_tag;
     UShort          num_channels;
     UInt            sampling_rate;
-    UInt            avg_bps;
+    UInt            avg_rate;
     UShort          block_size;
     UShort          bps;
 };
@@ -153,7 +153,7 @@ public:
 
         DOUT("tag:%.4lX ch:%.4lX rate:%u avg:%u blk:%u bps:%u\n",
              _format->format_tag, _format->num_channels,
-             _format->sampling_rate, _format->avg_bps, _format->block_size,
+             _format->sampling_rate, _format->avg_rate, _format->block_size,
              _format->bps);
 
         err = ReadChunkHeader(WaveDataChunk::ID, &header);
@@ -188,6 +188,16 @@ public:
         }
         _wave_size = 0;
         EXIT;
+    }
+
+    virtual UInt GetNumChannels()
+    {
+        if (_format != 0) {
+            return _format->num_channels;
+        }
+        else {
+            return 0;
+        }
     }
 
     virtual Int Size() { return _wave_size; }

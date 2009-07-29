@@ -77,7 +77,6 @@ public:
     }
 };
 
-//FI: static UInt counter = 0;
 
 stat_t
 PataServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
@@ -93,15 +92,6 @@ PataServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
         L4_Put(&msg, ERR_INVALID_ARGUMENTS, 0, 0, 0, 0);
         return ERR_NONE;
     }
-
-    //XXX: Fault injection
-    //FI: counter++;
-    /*
-    if (counter % 1400 == 0) {
-        System.Print("!!! Pata: FI %lu :-(\n", counter);
-        System.Exit(2);
-    }
-    */
 
     base = static_cast<addr_t>(L4_Get(&msg, 0));
     device = L4_Get(&msg, 1);
@@ -147,6 +137,7 @@ PataServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     EXIT;
     return Ipc::ReturnError(&msg, ERR_NONE);
 }
+
 
 stat_t
 PataServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)

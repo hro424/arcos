@@ -13,10 +13,15 @@ struct AC97BufferDescriptor
     union {
         UInt raw[2];
         struct {
+            /// Physical address of the buffer
             addr_t  address;
+            /// Number of samples (not number of bytes)
             UShort  length;
+
             UInt    _reserved:14;
+
             UInt    bup:1;
+            /// Interrupt on completion
             UInt    ioc:1;
         };
     };

@@ -45,16 +45,19 @@
 #include <l4/message.h>
 #include <l4/types.h>
 #include <Ipc.h>
+#include <System.h>
 
 class BasicServer
 {
 protected:
-    virtual stat_t IpcHandler(const L4_ThreadId_t& tid, L4_Msg_t& msg);
+    virtual stat_t IpcHandler(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    { return ERR_NONE; }
+
 public:
     stat_t Run();
     virtual const char* const Name() = 0;
     virtual stat_t Initialize(Int argc, char* argv[]) = 0;
-    virtual stat_t Exit();
+    virtual stat_t Exit() { return ERR_NONE; }
 };
 
 #define ARC_SERVER(CLASS)                                   \
@@ -149,17 +152,53 @@ class SessionServer : public BasicServer
 protected:
     List<SessionClient*>        _clients;
 
-    virtual void Register(const L4_ThreadId_t& tid, addr_t base, size_t size);
-    virtual void Deregister(SessionClient* c);
+    virtual void Register(const L4_ThreadId_t& tid, addr_t base, size_t size)
+    {
+        L4_ThreadId_t   sid = FindSpace(tid);
+        SessionClient*  c = new SessionClient(sid, base, size);
+        if (c == 0) {
+            //XXX
+            return;
+        }
+        _clients.Append(c);
+    }
+
+    virtual void Deregister(SessionClient* c)
+    {
+        _clients.Remove(c);
+        delete c;
+    }
+
     SessionClient* Search(const L4_ThreadId_t& tid, addr_t base);
 
     virtual stat_t IpcHandler(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg);
+
+    virtual stat_t HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        System.Print("WRONG HANDLER %.8lX\n", L4_Myself().raw);
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
 
     L4_ThreadId_t FindSpace(L4_ThreadId_t t)
     {

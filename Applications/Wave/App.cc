@@ -11,6 +11,13 @@
 #include <Wave.h>
 
 
+static inline void
+ReadTSC(unsigned long* hi, unsigned long* lo)
+{
+    asm volatile ("rdtsc" : "=a" (*lo), "=d" (*hi));
+}
+
+
 class MyListener : public AudioChannelListener
 {
 private:
@@ -19,14 +26,13 @@ private:
     AC97Channel*        _channel;
     AC97DescriptorList* _list;
     UByte*              _data_buf;
+    size_t              _data_length;
 
 public:
-    static const size_t BUFFER_SIZE = PAGE_SIZE * 2;
+    static const size_t BUFFER_SIZE = PAGE_SIZE / 2;
 
     MyListener(WaveStream* f, AC97Channel* c) : _stream(f), _channel(c)
     {
-        addr_t  data_buf_phys;
-
         // Allocate the space for the buffer descriptor list
         _list = (AC97DescriptorList*)palloc(1);
         Pager.Map((addr_t)_list, L4_ReadWriteOnly);
@@ -39,9 +45,6 @@ public:
         _data_buf = (UByte*)palloc(BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
         for (int i = 0; i < 8; i++) {
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
-            //DOUT("map %.8lX -> %.8lX\n",
-            //     Pager.Phys(((addr_t)_data_buf) + PAGE_SIZE * i),
-            //     ((addr_t)_data_buf) + PAGE_SIZE * i);
         }
 
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
@@ -50,17 +53,19 @@ public:
         for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
             _list->desc[i].address =
                     Pager.Phys(((addr_t)_data_buf) + BUFFER_SIZE * i);
-            _list->desc[i].length = BUFFER_SIZE;
+            // Number of samples to be processed
+            _list->desc[i].length = BUFFER_SIZE / _stream->GetNumChannels();
 
+            // Get interrupted by every NUM_SLOT
             if (i % NUM_SLOT == NUM_SLOT - 1) {
                 _list->desc[i].ioc = 1;
             }
-
-            DOUT("desc[%u] %.8lX %.8lX\n",
-                 i, _list->desc[i].raw[0], _list->desc[i].raw[1]);
         }
 
+        // Initialize the LVI register
         _channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
+
+        _data_length = _stream->Size();
     }
 
     virtual ~MyListener()
@@ -72,7 +77,7 @@ public:
 
     AC97DescriptorList* GetBuffer() { return _list; }
 
-    void Handle()
+    Int Handle()
     {
         size_t  rsize;
         UInt    stat;
@@ -84,9 +89,14 @@ public:
         lvi = (stat >> 8) & 0xFF;
         sr = stat >> 16;
 
+        //TODO: Convert 22.5/44.1KHz audio to the native freqency (48KHz)
         //DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
-
         if (sr == 0x8) {
+            if (_data_length == 0) {
+                // end of playback
+                return 0;
+            }
+
             // Calculate the next LVI
             lvi = (lvi == 31) ? NUM_SLOT - 1 : lvi + NUM_SLOT;
             index = lvi - (NUM_SLOT - 1);
@@ -94,25 +104,37 @@ public:
             stat_t err = _stream->Read(_data_buf + BUFFER_SIZE * index,
                                        BUFFER_SIZE * NUM_SLOT, &rsize);
             if (err != ERR_NONE) {
+                if (err == ERR_IPC_CANCELED) {
+                    return 0;
+                }
                 DOUT("%s\n", stat2msg[err]);
                 BREAK("err");
             }
 
-            for (UInt i = index; i < index + NUM_SLOT; i++) {
-                if (rsize / BUFFER_SIZE > 0) {
-                    _list->desc[i].length = BUFFER_SIZE;
-                    rsize -= BUFFER_SIZE;
+            if (_data_length < rsize) {
+                for (UInt i = index; i < index + NUM_SLOT; i++) {
+                    if (_data_length / BUFFER_SIZE > 0) {
+                        _list->desc[i].length =
+                                BUFFER_SIZE / _stream->GetNumChannels();
+                        _data_length -= BUFFER_SIZE;
+                    }
+                    else {
+                        _list->desc[i].length = (_data_length % BUFFER_SIZE) /
+                                                    _stream->GetNumChannels();
+                        _data_length = 0;
+                    }
                 }
-                else {
-                    _list->desc[i].length = rsize % BUFFER_SIZE;
-                    rsize = 0;
-                }
+            }
+            else {
+                _data_length -= rsize;
             }
 
             stat = (stat & ~0xFF00) | (lvi << 8);
             //DOUT("\tupdate:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         }
         _channel->SetStatus(stat);
+
+        return 1;
     }
 };
 
@@ -167,7 +189,7 @@ main(int argc, char* argv[])
         return -1;
     }
 
-    L4_Sleep(L4_TimePeriod(20000000));
+    channel.Join();
 
     channel.Stop();
     channel.Disconnect();

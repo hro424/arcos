@@ -120,6 +120,8 @@ public:
 
     UByte GetControl() { return BMRead8(AC97_IO_CR(ChannelBase())); }
 
+    void Reset() { SetControl(2); }
+
     void Activate() { SetControl(0x19); }
 
     void Deactivate() { SetControl(0); }

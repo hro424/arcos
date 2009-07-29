@@ -77,7 +77,7 @@ protected:
     void Disconnect(L4_ThreadId_t tid, addr_t dest);
 
 public:
-    static const size_t DEFAULT_SHM_PAGES = 1;
+    static const size_t DEFAULT_SHM_PAGES = 4;
 
     Session() : _peer(L4_nilthread), _shm(0) {}
 
