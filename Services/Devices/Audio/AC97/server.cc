@@ -32,7 +32,6 @@ public:
         _device.Mixer()->SetMasterVolume(0x0808);
         _device.Mixer()->SetPCMOutVolume(0x0808);
 
-        _device.EnableInterrupt();
         EXIT;
         return ERR_NONE;
     }
@@ -43,7 +42,6 @@ public:
     {
         ENTER;
         // Send EVENT_TERMINATE
-        _device.DisableInterrupt();
         _device.Finalize();
         EXIT;
         return ERR_NONE;
@@ -54,6 +52,8 @@ public:
     stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
+        _device.EnableInterrupt();
+
         L4_Word_t reg = _device.Id().raw;
         L4_Put(&msg, ERR_NONE, 1, &reg, 0, 0);
         EXIT;
@@ -63,9 +63,12 @@ public:
     stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
+        /*
         for (UInt i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
             _device.Channel(i)->Reset();
         }
+        */
+        _device.DisableInterrupt();
         EXIT;
         return ERR_NONE;
     }
@@ -84,8 +87,6 @@ public:
             _device.AddListener(handler);
             channel->Activate();
         }
-
-        //channel->SetLastValidIndex(1);
 
         EXIT;
         return ERR_NONE;
@@ -112,7 +113,6 @@ public:
 
     stat_t HandleConfig(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
-        ENTER;
         L4_Word_t           type = L4_Get(&msg, 0);
         L4_Word_t           op = L4_Get(&msg, 1);
         AC97ServerChannel*  channel;
@@ -142,7 +142,6 @@ public:
                 break;
         }
 
-        EXIT;
         return ERR_NONE;
     }
 };

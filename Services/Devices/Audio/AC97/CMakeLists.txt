@@ -26,11 +26,9 @@
 ##
 
 ##
-##  @file   Services/Devices/Audio/SB16/CMakeLists.txt
-##  @since  April 2008
+##  @file   Services/Devices/Audio/AC97/CMakeLists.txt
+##  @since  July 2009
 ##
-
-#$Id: CMakeLists.txt 412 2008-09-08 12:00:17Z hro $
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/Audio/include

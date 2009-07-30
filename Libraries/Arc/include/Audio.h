@@ -42,7 +42,7 @@ public:
 
             if (L4_Label(tag) == MSG_EVENT_NOTIFY) {
                 if (_listener != 0) {
-                    if (_listener->Handle() == 0) {
+                    if (_listener->Handle() != 0) {
                         break;
                     }
                 }
@@ -126,7 +126,7 @@ public:
         reg[1] = _int_thread->Id().raw;
         L4_Put(&msg, MSG_EVENT_START, 2, reg, 0, 0);
         err = Ipc::Send(_server, &msg);
-        if (err != ERR_NONE) {
+        if (err != ERR_NONE && _int_thread->IsRunning()) {
             _int_thread->Cancel();
         }
         EXIT;
@@ -155,10 +155,7 @@ public:
         EXIT;
     }
 
-    virtual void Join()
-    {
-        _int_thread->Join();
-    }
+    virtual void Join() { _int_thread->Join(); }
 
     virtual stat_t SetBuffer(const AudioBuffer& buf) = 0;
 

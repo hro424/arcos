@@ -34,67 +34,7 @@
 /// @since  February 2008
 ///
 
-//$Id: Interrupt.cpp 413 2008-09-09 01:38:42Z hro $
-
-#include <Debug.h>
 #include <Interrupt.h>
-#include <Ipc.h>
-#include <Thread.h>
-#include <Types.h>
-
 
 InterruptManager* InterruptManager::_self = 0;
-
-stat_t
-InterruptManager::Register(InterruptHandler* handler, UInt irq)
-{
-    ENTER;
-
-    if (_iht_table[irq] == 0) {
-        L4_Msg_t msg;
-        L4_ThreadId_t tid;
-        stat_t err;
-
-        _iht_table[irq] = new InterruptHelper(handler);
-
-        DOUT("new INTR helper: %.8lX\n", _iht_table[irq]->Id().raw);
-
-        tid = L4_GlobalId(L4_ThreadNo(_iht_table[irq]->Id()), irq);
-        L4_Put(&msg, MSG_ROOT_SET_INT, 1, &(tid.raw), 0, 0);
-        err = Ipc::Call(L4_Pager(), &msg, &msg);
-        if (err != ERR_NONE) {
-            delete _iht_table[irq];
-            return err;
-        }
-
-        _iht_table[irq]->Start();
-    }
-
-    EXIT;
-    return ERR_NONE;
-}
-
-InterruptHandler *
-InterruptManager::Deregister(UInt irq)
-{
-    InterruptHandler    *handler = 0;
-
-    if (_iht_table[irq] != 0) {
-        L4_Msg_t msg;
-        stat_t err;
-
-        L4_Put(&msg, MSG_ROOT_UNSET_INT, 1, (L4_Word_t *)&irq, 0, 0);
-        err = Ipc::Call(L4_Pager(), &msg, &msg);
-        if (err != ERR_NONE) {
-            return 0;
-        }
-
-        handler = _iht_table[irq]->GetHandler();
-        _iht_table[irq]->Cancel();
-        delete _iht_table[irq];
-        _iht_table[irq] = 0;
-    }
-
-    return handler;
-}
 

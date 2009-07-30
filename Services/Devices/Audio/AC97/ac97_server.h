@@ -122,9 +122,9 @@ public:
 
     void Reset() { SetControl(2); }
 
-    void Activate() { SetControl(0x19); }
+    void Activate() { ENTER; SetControl(0x19); EXIT; }
 
-    void Deactivate() { SetControl(0); }
+    void Deactivate() { ENTER; SetControl(0); EXIT; }
 
     void Print()
     { System.Print("base:%.8lX ch_base:%.8lX\n", _bm_base, ChannelBase()); }
@@ -292,8 +292,11 @@ public:
     ///
     stat_t EnableInterrupt()
     {
-        InterruptManager* imng = InterruptManager::Instance();
-        return imng->Register(this, IRQ_AC97Server);
+        stat_t err;
+        ENTER;
+        err = InterruptManager::Instance()->Register(this, IRQ_AC97Server);
+        EXIT;
+        return err;
     }
 
     ///
@@ -301,8 +304,9 @@ public:
     ///
     void DisableInterrupt()
     {
-        InterruptManager* imng = InterruptManager::Instance();
-        imng->Deregister(IRQ_AC97Server);
+        ENTER;
+        InterruptManager::Instance()->Deregister(IRQ_AC97Server);
+        EXIT;
     }
 
     ///
@@ -310,6 +314,7 @@ public:
     ///
     void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
     {
+        ENTER;
         L4_Msg_t                    event;
         Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
 
@@ -318,6 +323,7 @@ public:
             L4_ThreadId_t th = it.Next();
             Ipc::Call(th, &event, &event);
         }
+        EXIT;
     }
 
     ///

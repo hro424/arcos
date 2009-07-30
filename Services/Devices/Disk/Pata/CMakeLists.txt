@@ -30,8 +30,6 @@
 ##  @since  2007
 ##
 
-#$Id: CMakeLists.txt 411 2008-09-08 12:00:16Z hro $
-
 include_directories(
     ${CMAKE_SOURCE_DIR}/Libraries/MemoryPool/include
     ${CMAKE_SOURCE_DIR}/Libraries/SelfHealing/include)
@@ -49,3 +47,4 @@ add_custom_target(${MODULE_NAME}_rd
 add_dependencies(${MODULE_NAME}_rd ramdisk_pre)
 add_dependencies(${MODULE_NAME}_rd ${MODULE_NAME})
 add_dependencies(ramdisk ${MODULE_NAME}_rd)
+

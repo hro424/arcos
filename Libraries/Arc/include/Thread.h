@@ -34,8 +34,6 @@
 /// @since  February 2008
 ///
 
-//$Id: Thread.h 386 2008-08-30 05:07:57Z hro $
-
 #ifndef ARC_THREAD_H
 #define ARC_THREAD_H
 
@@ -238,12 +236,14 @@ Thread<STACK_SIZE>::Thread(size_t stack_size = STACK_SIZE)
 template <size_t STACK_SIZE>
 Thread<STACK_SIZE>::~Thread()
 {
+    ENTER;
+
     L4_Msg_t    msg;
     L4_Word_t   reg[2];
     stat_t      err;
 
     _state_lock.Lock();
-    if (_state != TERMINATED) {
+    if (_state == READY) {
         _destructor = L4_Myself();
         _state_lock.Unlock();
         L4_Receive(_tid);
@@ -260,6 +260,8 @@ Thread<STACK_SIZE>::~Thread()
         System.Print(System.ERROR, "thread deletion failed\n");
         return;
     }
+
+    EXIT;
 }
 
 

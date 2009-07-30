@@ -18,7 +18,7 @@ ReadTSC(unsigned long* hi, unsigned long* lo)
 }
 
 
-class MyListener : public AudioChannelListener
+class PCMPlayer : public AudioChannelListener
 {
 private:
     static const size_t NUM_SLOT = 8;
@@ -31,7 +31,7 @@ private:
 public:
     static const size_t BUFFER_SIZE = PAGE_SIZE / 2;
 
-    MyListener(WaveStream* f, AC97Channel* c) : _stream(f), _channel(c)
+    PCMPlayer(WaveStream* f, AC97Channel* c) : _stream(f), _channel(c)
     {
         // Allocate the space for the buffer descriptor list
         _list = (AC97DescriptorList*)palloc(1);
@@ -46,8 +46,21 @@ public:
         for (int i = 0; i < 8; i++) {
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
         }
-
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
+    }
+
+    virtual ~PCMPlayer()
+    {
+        pfree((addr_t)_data_buf,
+              BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
+        pfree((addr_t)_list, 1);
+    }
+
+    void Initialize()
+    {
+        if (_list == 0) {
+            return;
+        }
 
         // Initialize the buffer descriptors
         for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
@@ -68,11 +81,17 @@ public:
         _data_length = _stream->Size();
     }
 
-    virtual ~MyListener()
+    void Clear()
     {
-        pfree((addr_t)_data_buf,
-              BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
-        pfree((addr_t)_list, 1);
+        if (_list == 0) {
+            return;
+        }
+
+        for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
+            _list->desc[i].raw[0] = 0;
+            _list->desc[i].raw[1] = 0;
+        }
+        _channel->SetStatus(0);
     }
 
     AC97DescriptorList* GetBuffer() { return _list; }
@@ -94,7 +113,7 @@ public:
         if (sr == 0x8) {
             if (_data_length == 0) {
                 // end of playback
-                return 0;
+                return 1;
             }
 
             // Calculate the next LVI
@@ -105,13 +124,18 @@ public:
                                        BUFFER_SIZE * NUM_SLOT, &rsize);
             if (err != ERR_NONE) {
                 if (err == ERR_IPC_CANCELED) {
-                    return 0;
+                    return 1;
                 }
                 DOUT("%s\n", stat2msg[err]);
                 BREAK("err");
             }
 
             if (_data_length < rsize) {
+                // Disable all the interrupt on completion
+                for (UInt i = 0; i < AC97DescriptorList::SIZE; i++) {
+                    _list->desc[i].ioc = 0;
+                }
+
                 for (UInt i = index; i < index + NUM_SLOT; i++) {
                     if (_data_length / BUFFER_SIZE > 0) {
                         _list->desc[i].length =
@@ -127,14 +151,14 @@ public:
             }
             else {
                 _data_length -= rsize;
+                // Update LVI
+                stat = (stat & ~0xFF00) | (lvi << 8);
             }
-
-            stat = (stat & ~0xFF00) | (lvi << 8);
-            //DOUT("\tupdate:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         }
+        //DOUT("\tupdate:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         _channel->SetStatus(stat);
 
-        return 1;
+        return 0;
     }
 };
 
@@ -149,6 +173,7 @@ main(int argc, char* argv[])
     WaveStream          stream;
     AC97Audio           audio;
     AC97DescriptorList* buf;
+    PCMPlayer*          player;
     stat_t              err;
 
     err = NameService::Get(FILE_SERVER, &tid);
@@ -168,30 +193,36 @@ main(int argc, char* argv[])
 
     AC97Channel& channel = (AC97Channel&)audio.GetChannel(AC97Channel::pcm_out);
 
-    MyListener listener(&stream, &channel);
-
     err = channel.Connect();
     if (err != ERR_NONE) {
         System.Print("Disconnected. Channel is busy.\n");
         return -1;
     }
 
-    buf = listener.GetBuffer();
-    DOUT("user bufdesc list @ %p\n", buf);
-    channel.SetBuffer(buf);
-    channel.SetListener((AudioChannelListener*)&listener);
+    player = new PCMPlayer(&stream, &channel);
+    player->Initialize();
 
-    System.Print("Playing '%s'...\n", AUDIO_FILE);
+    channel.SetBuffer(player->GetBuffer());
+    channel.SetListener((AudioChannelListener*)player);
+
+    System.Print("Playing '%s' ...\n", AUDIO_FILE);
 
     err = channel.Start();
     if (err != ERR_NONE) {
         System.Print("Channel is busy.\n");
+        delete player;
         return -1;
     }
 
+    // Wait for the playback end
     channel.Join();
+
     channel.Stop();
+    System.Print("done.\n");
+
     channel.Disconnect();
+
+    delete player;
     stream.Close();
 
     return 0;

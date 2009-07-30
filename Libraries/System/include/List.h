@@ -48,191 +48,126 @@ template <typename T>
 class ListElement
 {
 protected:
-    ListElement<T>  *_next;
+    ListElement<T>* _next;
     T               _object;
 
 public:
-    ListElement(const T& obj);
-    virtual ~ListElement();
+    ListElement(const T& obj) : _next(0), _object(obj) {}
+    virtual ~ListElement() {}
 
     friend class List<T>;
     friend class Iterator<T>;
 };
-
-template <typename T>
-ListElement<T>::ListElement(const T& obj) : _next(0), _object(obj)
-{
-}
-
-template <typename T>
-ListElement<T>::~ListElement()
-{
-}
 
 
 template <typename T>
 class List
 {
 protected:
-    ListElement<T>  *_head;
+    ListElement<T>* _head;
     Iterator<T>     _it;
     size_t          _length;
 
 public:
-    List();
-    ~List();
+    List() : _head(0), _length(0) {}
 
-    stat_t Initialize();
-    stat_t Finalize();
-    
+    ~List()
+    {
+        ListElement<T>* cur = _head;
+        while (cur != 0) {
+            ListElement<T>* elem = cur;
+            cur = cur->_next;
+            delete elem;
+        }
+        _length = 0;
+    }
+
     ///
     /// Adds the object to the top of the list.  Duprication of the same
     /// object is allowed.
     ///
-    void Add(const T& obj);
+    void Add(const T& obj)
+    {
+        ListElement<T>* elem = new ListElement<T>(obj);
+        elem->_next = _head;
+        _head = elem;
+        _length++;
+    }
 
     ///
     /// Appends the object to the end of the list.  Duprication of the same
     /// object is allowed.
     ///
-    void Append(const T& obj);
+    void Append(const T& obj)
+    {
+        ListElement<T>** cur = &_head;
+        while (*cur != 0) {
+            cur = &((*cur)->_next);
+        }
+
+        ListElement<T>* elem = new ListElement<T>(obj);
+        elem->_next = 0;
+        *cur = elem;
+        _length++;
+    }
 
     ///
     /// Removes the object from the list.  The first occurance is removed if
     /// there are multiple of the object exist in the list.
     ///
-    void Remove(const T& obj);
+    void Remove(const T& obj)
+    {
+        ListElement<T>** cur = &_head;
+
+        while (*cur != 0) {     // Because an illegal object may be given.
+            if ((*cur)->_object == obj) {
+                ListElement<T> *elem = *cur;
+                *cur = elem->_next;
+                delete elem;
+                _length--;
+                break;
+            }
+            cur = &((*cur)->_next);
+        }
+    }
 
     ///
     /// Obtains the current number of the elements.
     ///
-    size_t Length();
+    size_t Length() { return _length; }
 
-    Iterator<T>& GetIterator();
+    Iterator<T>& GetIterator()
+    {
+        _it.Initialize(_head);
+        return _it;
+    }
 };
-
-template <typename T>
-List<T>::List() : _head(0), _length(0)
-{
-}
-
-template <typename T>
-List<T>::~List()
-{
-    ListElement<T> *cur = _head;
-    while (cur != 0) {
-        ListElement<T> *elem = cur;
-        cur = cur->_next;
-        delete elem;
-    }
-    _length = 0;
-}
-
-template <typename T>
-void
-List<T>::Add(const T& obj)
-{
-    ListElement<T> *elem = new ListElement<T>(obj);
-    elem->_next = _head;
-    _head = elem;
-    _length++;
-}
-
-template <typename T>
-void
-List<T>::Append(const T& obj)
-{
-    ListElement<T> **cur = &_head;
-    while (*cur != 0) {
-        cur = &((*cur)->_next);
-    }
-
-    ListElement<T> *elem = new ListElement<T>(obj);
-    elem->_next = 0;
-    *cur = elem;
-    _length++;
-}
-
-template <typename T>
-void
-List<T>::Remove(const T& obj)
-{
-    ListElement<T>**    cur = &_head;
-
-    while (*cur != 0) {     // Because an illegal object may be given.
-        if ((*cur)->_object == obj) {
-            ListElement<T> *elem = *cur;
-            *cur = elem->_next;
-            delete elem;
-            _length--;
-            break;
-        }
-        cur = &((*cur)->_next);
-    }
-}
-
-template <typename T>
-size_t
-List<T>::Length()
-{
-    return _length;
-}
-
-template <typename T>
-Iterator<T>&
-List<T>::GetIterator()
-{
-    _it.Initialize(_head);
-    return _it;
-}
-
 
 
 template <typename T>
 class Iterator
 {
 protected:
-    ListElement<T>  *_cursor;
+    ListElement<T>* _cursor;
 
-    void Initialize(ListElement<T> *head);
+    void Initialize(ListElement<T>* head) { _cursor = head; }
 
 public:
-    virtual ~Iterator();
-    bool HasNext();
-    T Next();
+    Iterator() : _cursor(0) {}
+
+    virtual ~Iterator() {}
+
+    bool HasNext() { return _cursor != 0; }
+
+    T Next()
+    {
+        T obj = _cursor->_object;
+        _cursor = _cursor->_next;
+        return obj;
+    }
 
     friend class List<T>;
 };
-
-template <typename T>
-void
-Iterator<T>::Initialize(ListElement<T> *head)
-{
-    _cursor = head;
-}
-
-template <typename T>
-Iterator<T>::~Iterator()
-{
-    _cursor = 0;
-}
-
-template <typename T>
-bool
-Iterator<T>::HasNext()
-{
-    return _cursor != 0;
-}
-
-template <typename T>
-T
-Iterator<T>::Next()
-{
-    T obj = _cursor->_object;
-    _cursor = _cursor->_next;
-
-    return obj;
-}
 
 #endif // ARC_ROOT_LIST_H
 

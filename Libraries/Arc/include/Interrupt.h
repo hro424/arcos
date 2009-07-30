@@ -34,8 +34,6 @@
 /// @since  February 2008
 ///
 
-//$Id: Interrupt.h 349 2008-05-29 01:54:02Z hro $
-
 #ifndef ARC_INTERRUPT_H
 #define ARC_INTERRUPT_H
 
@@ -43,7 +41,6 @@
 #include <Assert.h>
 #include <Types.h>
 
-//TODO: Use thread pool
 
 class InterruptHelper;
 
@@ -55,16 +52,10 @@ private:
 public:
     virtual void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg) = 0;
 
-    L4_ThreadId_t Id();
+    L4_ThreadId_t Id() { return _tid; }
 
     friend class InterruptHelper;
 };
-
-inline L4_ThreadId_t
-InterruptHandler::Id()
-{
-    return _tid;
-}
 
 
 class InterruptHelper : public Thread<>
@@ -75,40 +66,32 @@ private:
     InterruptHelper();
 
 public:
-    InterruptHelper(InterruptHandler* handler)
-        : Thread<>(), _handler(handler)
+    InterruptHelper(InterruptHandler* handler) : Thread<>(), _handler(handler)
+    { _handler->_tid = Id(); }
+
+    virtual ~InterruptHelper() { _handler->_tid = L4_nilthread; }
+
+    void Run()
     {
-        _handler->_tid = Id();
+        L4_Msg_t        msg;
+        L4_MsgTag_t     tag;
+        L4_ThreadId_t   tid;
+
+        tag = L4_Wait(&tid);
+        for (;;) {
+            L4_Store(tag, &msg);
+
+            assert(_handler != 0);
+            _handler->HandleInterrupt(tid, &msg);
+
+            L4_Clear(&msg);
+            L4_Load(&msg);
+            L4_ReplyWait(tid, &tid);
+        }
     }
 
-    virtual ~InterruptHelper()
-    {
-        _handler->_tid = L4_nilthread;
-    }
-
-    void Run();
     InterruptHandler* GetHandler() const { return _handler; };
 };
-
-inline void
-InterruptHelper::Run()
-{
-    L4_Msg_t        msg;
-    L4_MsgTag_t     tag;
-    L4_ThreadId_t   tid;
-
-    tag = L4_Wait(&tid);
-    for (;;) {
-        L4_Store(tag, &msg);
-
-        assert(_handler != 0);
-        _handler->HandleInterrupt(tid, &msg);
-
-        L4_Clear(&msg);
-        L4_Load(&msg);
-        L4_ReplyWait(tid, &tid);
-    }
-}
 
 
 class InterruptManager
@@ -154,7 +137,31 @@ public:
     /// @param handler      the interrupt handler
     /// @param irq          the interrupt request number
     ///
-    stat_t Register(InterruptHandler *handler, UInt irq);
+    stat_t Register(InterruptHandler *handler, UInt irq)
+    {
+        ENTER;
+
+        if (_iht_table[irq] == 0) {
+            L4_Msg_t msg;
+            L4_ThreadId_t tid;
+            stat_t err;
+
+            _iht_table[irq] = new InterruptHelper(handler);
+
+            tid = L4_GlobalId(L4_ThreadNo(_iht_table[irq]->Id()), irq);
+            L4_Put(&msg, MSG_ROOT_SET_INT, 1, &(tid.raw), 0, 0);
+            err = Ipc::Call(L4_Pager(), &msg, &msg);
+            if (err != ERR_NONE) {
+                delete _iht_table[irq];
+                return err;
+            }
+
+            _iht_table[irq]->Start();
+        }
+
+        EXIT;
+        return ERR_NONE;
+    }
 
     ///
     /// Deregisters the interrupt handler of the specified IRQ.
@@ -162,7 +169,32 @@ public:
     /// @param irq          the interrupt request number
     /// @return             the interrupt handler that was registered
     ///
-    InterruptHandler *Deregister(UInt irq);
+    InterruptHandler *Deregister(UInt irq)
+    {
+        ENTER;
+        InterruptHandler    *handler = 0;
+
+        if (_iht_table[irq] != 0) {
+            L4_Msg_t msg;
+            stat_t err;
+
+            L4_Put(&msg, MSG_ROOT_UNSET_INT, 1, (L4_Word_t *)&irq, 0, 0);
+            err = Ipc::Call(L4_Pager(), &msg, &msg);
+            if (err != ERR_NONE) {
+                return 0;
+            }
+
+            handler = _iht_table[irq]->GetHandler();
+            _iht_table[irq]->Cancel();
+            delete _iht_table[irq];
+            _iht_table[irq] = 0;
+        }
+
+        EXIT;
+        return handler;
+    }
+
 };
 
 #endif // ARC_INTERRUPT_H
+
