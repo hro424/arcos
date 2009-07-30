@@ -190,10 +190,8 @@ main(int argc, char* argv[])
     }
 
     channel.Join();
-
     channel.Stop();
     channel.Disconnect();
-
     stream.Close();
 
     return 0;

@@ -139,6 +139,7 @@ public:
     virtual void Stop()
     {
         ENTER;
+
         L4_Word_t   reg[2];
         L4_Msg_t    msg;
         stat_t      err;
@@ -146,7 +147,11 @@ public:
         reg[1] = _int_thread->Id().raw;
         L4_Put(&msg, MSG_EVENT_STOP, 2, reg, 0, 0);
         err = Ipc::Send(_server, &msg);
-        _int_thread->Cancel();
+
+        if (_int_thread->IsRunning()) {
+            _int_thread->Cancel();
+        }
+
         EXIT;
     }
 
@@ -155,14 +160,6 @@ public:
         _int_thread->Join();
     }
 
-    /*
-    virtual UInt GetVolume() = 0;
-    virtual void SetVolume(const UInt vol) = 0;
-    virtual UShort GetVolumeLeft() = 0;
-    virtual void SetVoumeLeft(const UShort vol) = 0;
-    virtual UShort GetVolumeRight() = 0;
-    virtual void SetVolumeRight(const UShort vol) = 0;
-    */
     virtual stat_t SetBuffer(const AudioBuffer& buf) = 0;
 
     virtual void SetListener(AudioChannelListener* listener)
