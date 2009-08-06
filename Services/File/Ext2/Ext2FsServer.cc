@@ -311,6 +311,7 @@ Ext2FsServer::Initialize0(Int argc, char* argv[])
     _e2p = new Ext2Partition;
     if (_e2p->Initialize(_partition) != ERR_NONE) {
         System.Print("%s\n", stat2msg[err]);
+        _disk->DumpPartitions();
         FATAL("Ext2: broken partition");
         goto exit;
     }

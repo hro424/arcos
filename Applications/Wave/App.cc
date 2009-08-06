@@ -164,25 +164,45 @@ public:
 };
 
 
-#define FILE_SERVER     "ram"
-#define AUDIO_FILE      "test.wav"
-
 int
 main(int argc, char* argv[])
 {
+    static const char*  DEFAULT_SERVER = "ram";
+    static const char*  DEFAULT_FILE = "test.wav";
     L4_ThreadId_t       tid;
     WaveStream          stream;
     AC97Audio           audio;
-    AC97DescriptorList* buf;
     PCMPlayer*          player;
     stat_t              err;
+    const char*         server_name;
+    const char*         file_name;
 
-    err = NameService::Get(FILE_SERVER, &tid);
+    if (argc > 1) {
+        char* ptr = argv[1];
+        while (*ptr != ':' && *ptr != '\0') {
+            ptr++;
+        }
+        if (*ptr == ':') {
+            *ptr = '\0';
+            server_name = argv[1];
+            file_name = ptr + 1;
+        }
+        else if (*ptr == '\0') {
+            server_name = DEFAULT_SERVER;
+            file_name = argv[1];
+        }
+    }
+    else {
+        server_name = DEFAULT_SERVER;
+        file_name = DEFAULT_FILE;
+    }
+
+    err = NameService::Get(server_name, &tid);
     if (err != ERR_NONE) {
         return err;
     }
 
-    err = stream.Open(tid, AUDIO_FILE);
+    err = stream.Open(tid, file_name);
     if (err != ERR_NONE) {
         return err;
     }
@@ -206,7 +226,7 @@ main(int argc, char* argv[])
     channel.SetBuffer(player->GetBuffer());
     channel.SetListener((AudioChannelListener*)player);
 
-    System.Print("Playing '%s' ...\n", AUDIO_FILE);
+    System.Print("Playing '%s' ...\n", file_name);
 
     err = channel.Start();
     if (err != ERR_NONE) {

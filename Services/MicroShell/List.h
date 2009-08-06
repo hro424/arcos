@@ -33,6 +33,7 @@ ListCommand::Execute(int argc, char* argv[])
     };
 
     static char     buffer[4096];
+    static char     name_buf[256];
     size_t          rsize;
     size_t          len;
     stat_t          err;
@@ -77,9 +78,10 @@ ListCommand::Execute(int argc, char* argv[])
 
     for (UInt i = 0; i < rsize;) {
         ptr = reinterpret_cast<Dir*>(buffer + i);
-        System.Print("reclen %u nmlen %u ino %lu type %u str %s\n",
-                     ptr->record_len, ptr->name_len, ptr->inode, ptr->type,
-                     ptr->name);
+        memcpy(name_buf, ptr->name, ptr->name_len);
+        name_buf[ptr->name_len] = '\0';
+        System.Print("ino %lu type %u str %s\n",
+                     ptr->inode, ptr->type, name_buf);
         i += ptr->record_len;
     }
 
