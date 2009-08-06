@@ -14,6 +14,7 @@
 #include <Interrupt.h>
 #include <List.h>
 #include <AC97.h>
+#include <Server.h>
 #include <arc/IO.h>
 #include "regs.h"
 
@@ -90,8 +91,11 @@ public:
      */
     static UInt GetGlobalStatus() { return BMRead32(AC97_IO_GLOB_STA); }
 
+
     AC97ServerChannel(UByte ch_base) : _ch_base(ch_base) {}
+
     virtual ~AC97ServerChannel() {}
+
 
     void SetBufDescBase(addr_t base)
     { BMWrite32(AC97_IO_BDBAR(ChannelBase()), base); }
@@ -218,12 +222,12 @@ private:
     ///
     /// The base address of the mapped registers of AC97 audio
     ///
-    addr_t              _mapped_io;
+    addr_t                      _mapped_io;
 
     ///
     /// The physical address of the mixer
     ///
-    static const addr_t MAPPED_IO_BASE = 0xF0010000;
+    static const addr_t         MAPPED_IO_BASE = 0xF0010000;
 
     ///
     /// The mixer object
@@ -233,12 +237,14 @@ private:
     ///
     /// The list of channels objects
     ///
-    AC97ServerChannel*          _channels[AC97Channel::NUM_CHANNELS];
+    static AC97ServerChannel    _channels[AC97Channel::NUM_CHANNELS];
 
     ///
     /// The listeners of interrupt
     ///
-    List<L4_ThreadId_t>         _listeners;
+    //L4_ThreadId_t IS_PERSISTENT _listener;
+
+    //Bool IS_PERSISTENT          _int_enabled;
 
     ///
     /// Registers the base address of the mixer.  The old value is over-written.
@@ -264,67 +270,27 @@ public:
     ///
     stat_t Initialize();
 
+    void Recover();
+
     ///
     /// Cleans up the instance.
     ///
-    void Finalize()
-    {
-        ENTER;
-        L4_Msg_t                    msg;
-        Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
-
-        L4_Put(&msg, MSG_EVENT_TERMINATE, 0, 0, 0, 0);
-        while (it.HasNext()) {
-            Ipc::Send(it.Next(), &msg);
-        }
-
-        for (size_t i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
-            if (_channels[i] != 0) {
-                delete _channels[i];
-            }
-        }
-        pfree(_mapped_io, 1);
-        EXIT;
-    }
+    void Finalize();
 
     ///
     /// Enables the interrupt.
     ///
-    stat_t EnableInterrupt()
-    {
-        stat_t err;
-        ENTER;
-        err = InterruptManager::Instance()->Register(this, IRQ_AC97Server);
-        EXIT;
-        return err;
-    }
+    stat_t EnableInterrupt();
 
     ///
     /// Disables the interrupt.
     ///
-    void DisableInterrupt()
-    {
-        ENTER;
-        InterruptManager::Instance()->Deregister(IRQ_AC97Server);
-        EXIT;
-    }
+    void DisableInterrupt();
 
     ///
     /// Handles the interrupt request.
     ///
-    void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
-    {
-        ENTER;
-        L4_Msg_t                    event;
-        Iterator<L4_ThreadId_t>&    it = _listeners.GetIterator();
-
-        L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
-        while (it.HasNext()) {
-            L4_ThreadId_t th = it.Next();
-            Ipc::Call(th, &event, &event);
-        }
-        EXIT;
-    }
+    void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg);
 
     ///
     /// Obtains the channel of the type.
@@ -332,7 +298,7 @@ public:
     AC97ServerChannel* Channel(UInt type)
     {
         if (0 <= type && type < AC97Channel::NUM_CHANNELS) {
-            return _channels[type];
+            return &_channels[type];
         }
         else {
             return 0;
@@ -344,14 +310,15 @@ public:
     ///
     /// Adds the listener of the interrupt.
     ///
-    void AddListener(L4_ThreadId_t tid) { _listeners.Add(tid); }
+    //void AddListener(L4_ThreadId_t& tid) { _listener = tid; }
+    void AddListener(L4_ThreadId_t& tid);
 
     ///
     /// Removes the listener from the listener list.
     ///
-    void DelListener(L4_ThreadId_t tid) { _listeners.Remove(tid); }
+    //void DelListener() { _listener = L4_nilthread; }
+    void DelListener();
 };
-
 
 #endif // ARC_SERVICES_AUDIO_AC97_AC97_SERVER_H
 

@@ -41,7 +41,7 @@ set(MODULE_NAME ext2)
 set(VERBOSE_LEVEL 3)
 list(APPEND LIBS disk psession)
 
-#add_definitions(-DSYS_DEBUG)
+add_definitions(-DSYS_DEBUG)
 #add_definitions(-DSYS_DEBUG_CALL)
 
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Lv1Service.cmake)

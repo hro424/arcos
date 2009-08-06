@@ -14,6 +14,18 @@
 #include <PageAllocator.h>
 #include <MemoryManager.h>
 
+//
+// Status:
+// - Interrupt enable/disable
+// - Bus master base address    -> FIXED
+// - Bus master configuration and status    -> On the register
+// - Mixer base address         -> FIXED
+// - Mixer configuration        -> On the register
+// - Mapped I/O -> Reallocate, remap
+// - DMA base address           -> On the register
+// - Channel active/inactive    -> On the register
+// - Client TID -> PM
+//
 
 class AC97Server : public SelfHealingServer
 {
@@ -36,7 +48,12 @@ public:
         return ERR_NONE;
     }
 
-    virtual stat_t Recover() { return ERR_NONE; }
+    virtual stat_t Recover()
+    {
+        _device.Recover();
+
+        return ERR_NONE;
+    }
 
     virtual stat_t Exit()
     {
@@ -53,9 +70,9 @@ public:
     {
         ENTER;
         _device.EnableInterrupt();
-
         L4_Word_t reg = _device.Id().raw;
         L4_Put(&msg, ERR_NONE, 1, &reg, 0, 0);
+        //_connected = TRUE;
         EXIT;
         return ERR_NONE;
     }
@@ -63,11 +80,7 @@ public:
     stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
-        /*
-        for (UInt i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
-            _device.Channel(i)->Reset();
-        }
-        */
+        //_connected = FALSE;
         _device.DisableInterrupt();
         EXIT;
         return ERR_NONE;
@@ -79,7 +92,7 @@ public:
         L4_ThreadId_t       handler;
         L4_Word_t           type;
         AC97ServerChannel*  channel;
-        
+
         type = L4_Get(&msg, 0);
         handler.raw = L4_Get(&msg, 1);
         channel = _device.Channel(type);
@@ -103,7 +116,7 @@ public:
         handler.raw = L4_Get(&msg, 1);
         channel = _device.Channel(type);
         if (channel != 0) {
-            _device.DelListener(handler);
+            _device.DelListener();
             channel->Deactivate();
         }
 

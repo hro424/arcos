@@ -108,7 +108,8 @@ public:
         lvi = (stat >> 8) & 0xFF;
         sr = stat >> 16;
 
-        //TODO: Convert 22.5/44.1KHz audio to the native freqency (48KHz)
+        //TODO: Convert 22.5/44.1KHz audio to the AC97's native
+        //      frequency (48KHz)
         //DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         if (sr == 0x8) {
             if (_data_length == 0) {

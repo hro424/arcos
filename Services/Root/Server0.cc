@@ -40,7 +40,6 @@
 /// @since  2007
 ///
 
-// $Id: Server0.cc 429 2008-11-01 02:24:02Z hro $
 
 #include <Debug.h>
 #include <Ipc.h>
@@ -634,7 +633,7 @@ HandleNsList(L4_Msg_t* msg)
         len = MAX_STRLEN;
     }
     memcpy(&reg[2], e->name, len);
-    System.Print("%.8lX %.8lX %s\n", reg[0], reg[1], e->name);
+    DOUT("%.8lX %.8lX %s\n", reg[0], reg[1], e->name);
 
     L4_Put(msg, ERR_NONE, (len + 3) / 4 + 2, reg, 0, 0);
     return ERR_NONE;

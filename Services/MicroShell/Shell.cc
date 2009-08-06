@@ -34,8 +34,6 @@
 /// @since  February 2008
 ///
 
-//$Id: Shell.cc 410 2008-09-08 12:00:15Z hro $
-
 #include <Debug.h>
 #include <NameService.h>
 #include <String.h>
@@ -57,7 +55,7 @@ int
 main()
 {
     static const char*      version = "Arc operating system, version 0.1\n";
-    static const char*      message = "Welcome to Arc Micro Shell. Enjoy!\n";
+    static const char*      message = "Welcome to Arc Micro Shell. Enjoy!\n\n";
     static const char*      prompt = "msh% ";
 
     static EmptyCommand     empty;

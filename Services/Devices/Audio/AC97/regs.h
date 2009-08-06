@@ -85,5 +85,12 @@
 #define AC97_IO_CAS                     0x34
 #define AC97_IO_SDM                     0x80
 
+#define AC97_GLOB_STA_PIINT             0x00000020
+#define AC97_GLOB_STA_POINT             0x00000040
+#define AC97_GLOB_STA_MINT              0x00000080
+#define AC97_GLOB_STA_M2INT             0x01000000
+#define AC97_GLOB_STA_P2INT             0x02000000
+#define AC97_GLOB_STA_SPINT             0x04000000
+
 #endif // ARC_SERVICES_AUDIO_AC97_REGS_H
 

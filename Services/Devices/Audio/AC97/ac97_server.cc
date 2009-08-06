@@ -2,10 +2,24 @@
 #include <Debug.h>
 #include <System.h>
 #include <String.h>
+#include <Server.h>
 #include <arch/io.h>
 #include "ac97_server.h"
 
+static L4_ThreadId_t IS_PERSISTENT  _listener;
+static Bool IS_PERSISTENT           _int_enabled;
+
 addr_t AC97ServerChannel::_bm_base;
+
+AC97ServerChannel AC97Device::_channels[AC97Channel::NUM_CHANNELS] =
+{
+    AC97ServerChannel(AC97_IO_PIBASE),
+    AC97ServerChannel(AC97_IO_POBASE),
+    AC97ServerChannel(AC97_IO_MCBASE),
+    AC97ServerChannel(AC97_IO_MC2BASE),
+    AC97ServerChannel(AC97_IO_PI2BASE),
+    AC97ServerChannel(AC97_IO_SPBASE)
+};
 
 stat_t
 AC97Device::Initialize()
@@ -36,22 +50,92 @@ AC97Device::Initialize()
 
     AC97ServerChannel::Initialize(_mapped_io + 1024);
 
-    _channels[0] = new AC97ServerChannel(AC97_IO_PIBASE);
-    _channels[1] = new AC97ServerChannel(AC97_IO_POBASE);
-    _channels[2] = new AC97ServerChannel(AC97_IO_MCBASE);
-    _channels[3] = new AC97ServerChannel(AC97_IO_MC2BASE);
-    _channels[4] = new AC97ServerChannel(AC97_IO_PI2BASE);
-    _channels[5] = new AC97ServerChannel(AC97_IO_SPBASE);
-
     // Activate the bus master
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);
 
     for (int i = 0; i < 6; i++) {
-        _channels[i]->Reset();
-        _channels[i]->Print();
+        _channels[i].Reset();
+        _channels[i].Print();
     }
 
+    _int_enabled = FALSE;
+
     return ERR_NONE;
+}
+
+void
+AC97Device::Finalize()
+{
+    ENTER;
+    L4_Msg_t                    msg;
+
+    L4_Put(&msg, MSG_EVENT_TERMINATE, 0, 0, 0, 0);
+    Ipc::Send(_listener, &msg);
+
+    pfree(_mapped_io, 1);
+    EXIT;
+}
+
+
+void
+AC97Device::Recover()
+{
+    _mapped_io = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
+    Pager.Map(_mapped_io, L4_ReadWriteOnly, MAPPED_IO_BASE, L4_nilthread);
+    _mixer.Initialize(_mapped_io);
+    AC97ServerChannel::Initialize(_mapped_io + 1024);
+    if (_int_enabled) {
+        EnableInterrupt();
+    }
+}
+
+
+void
+AC97Device::AddListener(L4_ThreadId_t& tid)
+{
+    _listener = tid;
+}
+
+
+void
+AC97Device::DelListener()
+{
+    _listener = L4_nilthread;
+}
+
+
+stat_t
+AC97Device::EnableInterrupt()
+{
+    stat_t err;
+    ENTER;
+    err = InterruptManager::Instance()->Register(this, IRQ_AC97Server);
+    _int_enabled = TRUE;
+    EXIT;
+    return err;
+}
+
+
+void
+AC97Device::DisableInterrupt()
+{
+    ENTER;
+    InterruptManager::Instance()->Deregister(IRQ_AC97Server);
+    _int_enabled = FALSE;
+    EXIT;
+}
+
+
+void
+AC97Device::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
+{
+    ENTER;
+    L4_Msg_t    event;
+
+    L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
+    L4_Append(&event, AC97ServerChannel::GetGlobalStatus());
+    Ipc::Call(_listener, &event, &event);
+    EXIT;
 }
 
