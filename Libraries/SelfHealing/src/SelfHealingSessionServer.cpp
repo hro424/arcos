@@ -34,8 +34,6 @@
 /// @since  April 2008
 ///
 
-//$Id: SelfHealingSessionServer.cpp 427 2008-11-01 01:42:45Z hro $
-
 #define SYS_DEBUG
 //#define SYS_DEBUG_CALL
 

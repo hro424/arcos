@@ -38,8 +38,10 @@
 #ifndef ARC_FILE_STREAM_H
 #define ARC_FILE_STREAM_H
 
+#include <Debug.h>
 #include <Session.h>
 #include <Stream.h>
+#include <String.h>
 #include <Types.h>
 #include <l4/types.h>
 
@@ -72,15 +74,44 @@ public:
         SEEK_END =      2,
     };
 
-    virtual stat_t Connect(L4_ThreadId_t tid);
+    FileStream() {}
 
-    virtual void Disconnect() { delete _ss; }
+    virtual ~FileStream() { DOUT("\n"); Disconnect(); }
+
+    virtual stat_t Connect(L4_ThreadId_t tid)
+    {
+        ENTER;
+
+        _ss = new Session();
+        if (_ss == 0) {
+            return ERR_OUT_OF_MEMORY;
+        }
+
+        _ss->Connect(tid);
+
+        if (!_ss->IsConnected()) {
+            delete _ss;
+            _ss = 0;
+            return ERR_UNKNOWN;
+        }
+
+        EXIT;
+        return ERR_NONE;
+    }
+
+    virtual void Disconnect()
+    {
+        if (_ss != 0) {
+            delete _ss;
+            _ss = 0;
+        }
+    }
 
     virtual stat_t Open(const char *path, UInt mode);
 
     virtual void Close()
     {
-        if (_ss->End(0, 0) != ERR_NONE) {
+        if (_ss != 0 && _ss->End(0, 0) != ERR_NONE) {
             //XXX: Recovery
         }
     }
@@ -102,7 +133,68 @@ public:
         }
     }
 
-    virtual stat_t Read(void* buf, size_t count, size_t* rsize);
+    virtual stat_t Read(void* buffer, size_t count, size_t* rsize)
+    {
+        addr_t      ptr;
+        UInt        offset;
+        Int         length;
+        Int         len;
+        stat_t      err;
+
+        ENTER;
+
+        if (buffer == 0) {
+            return ERR_INVALID_ARGUMENTS;
+        }
+
+        if (count == 0) {
+            if (rsize != 0) {
+                *rsize = 0;
+            }
+            return ERR_NONE;
+        }
+
+        ptr = reinterpret_cast<addr_t>(buffer);
+        offset = _offset;
+        length = (Int)count;
+
+        while (0 < length) {
+            L4_Word_t   reg[2];
+            Int         ssize = static_cast<Int>(_ss->Size());
+
+            len = (length < ssize) ? length : ssize;
+
+            reg[0] = len;
+            reg[1] = offset;
+
+            err = _ss->Get(reg, 2, reg, 1);
+            if (err != ERR_NONE) {
+                return err;
+            }
+
+            Int read = reg[0];
+
+            memcpy(reinterpret_cast<void*>(ptr),
+                   reinterpret_cast<const void*>(_ss->GetBaseAddress()), read);
+
+            ptr += read;
+            offset += read;
+            length -= read;
+
+            if (read < len) {
+                break;
+            }
+        }
+
+        //SessionSetExtra(_ss, (void *)offset);
+        _offset = offset;
+        if (rsize != 0) {
+            *rsize = static_cast<size_t>(ptr - (addr_t)buffer);
+        }
+
+        EXIT;
+        return ERR_NONE;
+    }
 
     virtual void Write(Int c) { /* not implemented */ }
 
@@ -110,7 +202,24 @@ public:
 
     virtual void Flush() { /* not implemented */ }
 
-    virtual Int Seek(Int offset, UInt mode);
+    virtual Int Seek(Int offset, UInt mode)
+    {
+        switch (mode) {
+            case SEEK_SET:
+                _offset = offset;
+                break;
+            case SEEK_CUR:
+                _offset += offset;
+                break;
+            case SEEK_END:
+                _offset = _size + offset;
+                break;
+            default:
+                break;
+        }
+
+        return _offset;
+    }
 
     virtual Int Size() { return _size; }
 };

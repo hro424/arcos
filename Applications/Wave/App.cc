@@ -110,7 +110,7 @@ public:
 
         //TODO: Convert 22.5/44.1KHz audio to the AC97's native
         //      frequency (48KHz)
-        //DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
+        DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         if (sr == 0x8) {
             if (_data_length == 0) {
                 // end of playback
@@ -131,6 +131,7 @@ public:
                 BREAK("err");
             }
 
+            DOUT("rsize %u\n", rsize);
             if (_data_length < rsize) {
                 // Disable all the interrupt on completion
                 for (UInt i = 0; i < AC97DescriptorList::SIZE; i++) {
@@ -174,8 +175,8 @@ main(int argc, char* argv[])
     AC97Audio           audio;
     PCMPlayer*          player;
     stat_t              err;
-    const char*         server_name;
-    const char*         file_name;
+    const char*         server_name = DEFAULT_SERVER;
+    const char*         file_name = DEFAULT_FILE;
 
     if (argc > 1) {
         char* ptr = argv[1];
@@ -192,24 +193,24 @@ main(int argc, char* argv[])
             file_name = argv[1];
         }
     }
-    else {
-        server_name = DEFAULT_SERVER;
-        file_name = DEFAULT_FILE;
-    }
+
+    DOUT("using '%s' '%s'\n", server_name, file_name);
 
     err = NameService::Get(server_name, &tid);
     if (err != ERR_NONE) {
-        return err;
+        return -1;
     }
+    DOUT("fs: %.8lX\n", tid.raw);
 
     err = stream.Open(tid, file_name);
     if (err != ERR_NONE) {
-        return err;
+        DOUT("file not found\n");
+        return -1;
     }
 
     err = audio.Initialize();
     if (err != ERR_NONE) {
-        return err;
+        return -1;
     }
 
     AC97Channel& channel = (AC97Channel&)audio.GetChannel(AC97Channel::pcm_out);

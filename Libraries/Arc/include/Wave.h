@@ -64,6 +64,7 @@ protected:
 
         err = FileStream::Open(path, FileStream::READ);
         if (err != ERR_NONE) {
+            FileStream::Disconnect();
             return err;
         }
 
@@ -107,9 +108,11 @@ public:
 
     virtual ~WaveStream()
     {
+        DOUT("\n");
         if (_wave_size != 0) {
             Close();
         }
+        DOUT("\n");
     }
 
     virtual stat_t Open(L4_ThreadId_t tid, const char* path)
@@ -182,9 +185,10 @@ public:
     virtual void Close()
     {
         ENTER;
-        FileStream::Close();
+        CloseStream();
         if (_format != 0) {
             mfree(_format);
+            _format = 0;
         }
         _wave_size = 0;
         EXIT;

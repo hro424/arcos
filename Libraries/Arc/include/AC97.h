@@ -2,6 +2,7 @@
 #define ARC_AUDIO_AC97_H
 
 #include <Assert.h>
+#include <Debug.h>
 #include <PageAllocator.h>
 #include <MemoryManager.h>
 #include <Ipc.h>
@@ -200,6 +201,13 @@ private:
     AC97Channel*    _channels[AC97Channel::NUM_CHANNELS];
 
 public:
+    AC97Audio()
+    {
+        for (size_t i = 0; i < AC97Channel::NUM_CHANNELS; i++) {
+            _channels[i] = 0;
+        }
+    }
+
     virtual ~AC97Audio()
     {
         for (UInt i = 0; i < AC97Channel::NUM_CHANNELS; i++) {

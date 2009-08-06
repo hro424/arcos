@@ -33,8 +33,6 @@
 /// @since  2007
 ///
 
-// $Id: FileStream.cpp 385 2008-08-28 18:38:11Z hro $
-
 //#define SYS_DEBUG
 //#define SYS_DEBUG_CALL
 
@@ -44,27 +42,6 @@
 #include <Session.h>
 #include <String.h>
 #include <Types.h>
-
-stat_t
-FileStream::Connect(L4_ThreadId_t tid)
-{
-    ENTER;
-
-    _ss = new Session();
-    if (_ss == 0) {
-        return ERR_OUT_OF_MEMORY;
-    }
-
-    _ss->Connect(tid);
-
-    if (!_ss->IsConnected()) {
-        delete _ss;
-        return ERR_UNKNOWN;
-    }
-
-    EXIT;
-    return ERR_NONE;
-}
 
 stat_t
 FileStream::Open(const char *path, UInt mode)
@@ -86,70 +63,6 @@ FileStream::Open(const char *path, UInt mode)
     _size = reg[1];
 
     _offset = 0;
-
-    EXIT;
-    return ERR_NONE;
-}
-
-stat_t
-FileStream::Read(void *buffer, size_t count, size_t* rsize)
-{
-    addr_t      ptr;
-    UInt        offset;
-    Int         length;
-    Int         len;
-    stat_t      err;
-
-    ENTER;
-
-    if (buffer == 0) {
-        return ERR_INVALID_ARGUMENTS;
-    }
-
-    if (count == 0) {
-        if (rsize != 0) {
-            *rsize = 0;
-        }
-        return ERR_NONE;
-    }
-
-    ptr = reinterpret_cast<addr_t>(buffer);
-    offset = _offset;
-    length = (Int)count;
-
-    while (0 < length) {
-        L4_Word_t   reg[2];
-        Int         ssize = static_cast<Int>(_ss->Size());
-
-        len = (length < ssize) ? length : ssize;
-
-        reg[0] = len;
-        reg[1] = offset;
-
-        err = _ss->Get(reg, 2, reg, 1);
-        if (err != ERR_NONE) {
-            return err;
-        }
-
-        Int read = reg[0];
-
-        memcpy(reinterpret_cast<void*>(ptr),
-               reinterpret_cast<const void*>(_ss->GetBaseAddress()), read);
-
-        ptr += read;
-        offset += read;
-        length -= read;
-
-        if (read < len) {
-            break;
-        }
-    }
-
-    //SessionSetExtra(_ss, (void *)offset);
-    _offset = offset;
-    if (rsize != 0) {
-        *rsize = static_cast<size_t>(ptr - (addr_t)buffer);
-    }
 
     EXIT;
     return ERR_NONE;
@@ -213,26 +126,4 @@ FileStream::Write(const void *buffer, size_t count, size_t* wsize)
     }
     return ERR_NONE;
 }
-
-
-Int
-FileStream::Seek(Int offset, UInt mode)
-{
-    switch (mode) {
-        case SEEK_SET:
-            _offset = offset;
-            break;
-        case SEEK_CUR:
-            _offset += offset;
-            break;
-        case SEEK_END:
-            _offset = _size + offset;
-            break;
-        default:
-            break;
-    }
-
-    return _offset;
-}
-
 

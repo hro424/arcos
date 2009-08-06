@@ -143,14 +143,14 @@ Port::IssueCommand(AtaCommandBlock *cb)
     	WritePortCommand(port, ATA_CMD_DEV_HEAD, cb->deviceHead);
     }
     */
-    DOUT("Command: 0x%.2X\n", cb->command);
-    DOUT("Status: 0x%.2X\n", Status());
+    //DOUT("Command: 0x%.2X\n", cb->command);
+    //DOUT("Status: 0x%.2X\n", Status());
     WriteCommand(CMD_COMMAND, cb->command);
 
     int i = 0;
     while (i < 1000) i++;
 
-    DOUT("Status: 0x%.2X\n", Status());
+    //DOUT("Status: 0x%.2X\n", Status());
     EXIT;
 }
 
@@ -161,7 +161,6 @@ Port::WaitDevice()
     ENTER;
 
     if (IsInterruptEnable()) {
-        DOUT("wait: %.8lX\n", this->Id().raw);
         L4_Receive(this->Id());
     }
     else {
