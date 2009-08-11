@@ -76,12 +76,12 @@ ListCommand::Execute(int argc, char* argv[])
     _fs.Read(buffer, 4096, &rsize);
     _fs.Close();
 
-    System.Print("INO\tTYPE\tNAME\n");
+    System.Print("INO\t\tTYPE\tNAME\n");
     for (UInt i = 0; i < rsize;) {
         ptr = reinterpret_cast<Dir*>(buffer + i);
         memcpy(name_buf, ptr->name, ptr->name_len);
         name_buf[ptr->name_len] = '\0';
-        System.Print("%lu\t%u\t%s\n", ptr->inode, ptr->type, name_buf);
+        System.Print("%8lu\t%u\t%s\n", ptr->inode, ptr->type, name_buf);
         i += ptr->record_len;
     }
 

@@ -108,11 +108,9 @@ public:
 
     virtual ~WaveStream()
     {
-        DOUT("\n");
         if (_wave_size != 0) {
             Close();
         }
-        DOUT("\n");
     }
 
     virtual stat_t Open(L4_ThreadId_t tid, const char* path)

@@ -34,8 +34,6 @@
 /// @since  December 2007
 ///
 
-//$Id: IpcHandler.cc 427 2008-11-01 01:42:45Z hro $
-
 #include <l4/kdebug.h>
 #include <Debug.h>
 #include <FileStream.h>

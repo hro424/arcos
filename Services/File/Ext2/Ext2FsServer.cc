@@ -192,15 +192,6 @@ Ext2FsServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
 
     ENTER;
 
-    //XXX: Fault injection
-    /*
-    counter++;
-    if (counter % 5 == 0) {
-        System.Print("!!! Ext2: FI %lu :-(\n", counter);
-        *(L4_Word_t*)0 = 1;
-    }
-    */
-
     base = L4_Get(&msg, 0);
     c = Search(tid, base);
     if (c == 0 || c->data == static_cast<word_t>(-1)) {
@@ -215,6 +206,17 @@ Ext2FsServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     file = &__file_container[c->data];
     file->Read(reinterpret_cast<void*>(c->base), length, offset, &read);
     DOUT("len %lu offset %lu read %lu\n", length, offset, read);
+
+    /*
+    char* ptr = (char*)c->base;
+    for (int i = 0; i < 1024; i += 16) {
+        for (int j = 0; j < 16; j++) {
+            Debug.Print("%2X ", ptr[i + j]);
+        }
+        Debug.Print("\n");
+    }
+    Debug.Print("\n");
+    */
 
     reg[1] = read;
     L4_Put(&msg, 0, 2, reg, 0, 0);

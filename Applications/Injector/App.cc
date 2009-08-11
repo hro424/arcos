@@ -62,7 +62,8 @@ main(int argc, char* argv[])
     reg[0] = target.raw;
     reg[1] = FI_TEXT_AREA;
 
-    System.Print("%.8lX starts fault injection.\n", L4_Myself().raw);
+    System.Print("%.8lX starts fault injection to '%s' %.8lX.\n",
+                 L4_Myself().raw, argv[1], target.raw);
     for (int i = 0; i < 10; i++) {
         // Sleep
         L4_Sleep(L4_TimePeriod(MS(500UL)));

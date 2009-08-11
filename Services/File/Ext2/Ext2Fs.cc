@@ -91,9 +91,9 @@ Ext2Fs::SearchFile(Ext2File *cd, const char *query, size_t qlen, Bool dir,
                 goto exit;
             }
 
-            DOUT("reclen %u nmlen %u ino %lu type %u str %s\n",
-                 entry->recordLength, entry->nameLength,
-                 entry->inode, entry->fileType, entry->name);
+            //DOUT("reclen %u nmlen %u ino %lu type %u str %s\n",
+            //     entry->recordLength, entry->nameLength,
+            //     entry->inode, entry->fileType, entry->name);
 
             if (!dir || entry->fileType == Ext2Dir::DIRECTORY) {
                 if (entry->nameLength == qlen &&

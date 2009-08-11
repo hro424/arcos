@@ -174,8 +174,30 @@ public:
 
             Int read = reg[0];
 
+            DOUT("copy 0x%lX -> %p\n", _ss->GetBaseAddress(), ptr);
             memcpy(reinterpret_cast<void*>(ptr),
                    reinterpret_cast<const void*>(_ss->GetBaseAddress()), read);
+
+            /*
+            char* dptr = (char*)(_ss->GetBaseAddress());
+            for (int i = 0; i < 1024; i += 16) {
+                for (int j = 0; j < 16; j++) {
+                    Debug.Print("%2X ", dptr[i + j] & 0xFF);
+                }
+                Debug.Print("\n");
+            }
+            Debug.Print("\n");
+
+            dptr = (char*)(ptr);
+            DOUT("%p\n", dptr);
+            for (int i = 0; i < read; i += 16) {
+                for (int j = 0; j < 16; j++) {
+                    Debug.Print("%2X ", dptr[i + j] & 0xFF);
+                }
+                Debug.Print("\n");
+            }
+            Debug.Print("\n");
+            */
 
             ptr += read;
             offset += read;

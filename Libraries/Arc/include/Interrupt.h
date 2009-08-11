@@ -98,6 +98,7 @@ class InterruptManager
 {
 private:
     static const UInt           NIRQ = 16;
+    static const UInt           PRIO_IRQ = 120;
     static InterruptManager*    _self;
 
     ///
@@ -156,6 +157,7 @@ public:
                 return err;
             }
 
+            _iht_table[irq]->SetPriority(PRIO_IRQ);
             _iht_table[irq]->Start();
         }
 

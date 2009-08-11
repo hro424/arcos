@@ -47,6 +47,7 @@ public:
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
         }
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
+        DOUT("Data buffer allocated @ %p\n", _data_buf);
     }
 
     virtual ~PCMPlayer()
@@ -73,10 +74,16 @@ public:
             if (i % NUM_SLOT == NUM_SLOT - 1) {
                 _list->desc[i].ioc = 1;
             }
+            DOUT("desc[%2lu] %.8lX %.8lX\n",
+                 i, _list->desc[i].raw[0], _list->desc[i].raw[1]);
         }
 
         // Initialize the LVI register
-        _channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
+        UInt civ = _channel->GetStatus() & 0xFF;
+        UInt init_lvi = ((NUM_SLOT * 2 - 1) + civ) % 32;
+        _channel->SetStatus(init_lvi << 8);
+        //_channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
+        DOUT("Initial LVI %lu CIV %lu\n", init_lvi, civ);
 
         _data_length = _stream->Size();
     }
@@ -107,10 +114,10 @@ public:
         stat = _channel->GetStatus();
         lvi = (stat >> 8) & 0xFF;
         sr = stat >> 16;
+        DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", sr, lvi, stat & 0xFF);
 
         //TODO: Convert 22.5/44.1KHz audio to the AC97's native
         //      frequency (48KHz)
-        DOUT("\tstat:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
         if (sr == 0x8) {
             if (_data_length == 0) {
                 // end of playback
@@ -157,7 +164,13 @@ public:
                 stat = (stat & ~0xFF00) | (lvi << 8);
             }
         }
-        //DOUT("\tupdate:\t0x%X %u %u\n", sr, lvi, stat & 0xFF);
+
+        UInt _stat = _channel->GetStatus();
+        UByte _lvi = (_stat >> 8) & 0xFF;
+        UShort _sr = _stat >> 16;
+        DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", _sr, _lvi, _stat & 0xFF);
+
+        DOUT("\tupdate:\tsr:0x%X lvi:%u\n", sr, lvi);
         _channel->SetStatus(stat);
 
         return 0;
@@ -169,7 +182,7 @@ int
 main(int argc, char* argv[])
 {
     static const char*  DEFAULT_SERVER = "ram";
-    static const char*  DEFAULT_FILE = "test.wav";
+    static const char*  DEFAULT_FILE = "vitamin_b.wav";
     L4_ThreadId_t       tid;
     WaveStream          stream;
     AC97Audio           audio;
