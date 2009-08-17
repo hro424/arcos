@@ -46,7 +46,7 @@ public:
             if (L4_Label(tag) == MSG_EVENT_NOTIFY) {
                 if (_listener != 0) {
                     if (_listener->Handle() != 0) {
-                        break;
+                        return;
                     }
                 }
             }

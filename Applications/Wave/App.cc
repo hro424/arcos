@@ -28,8 +28,8 @@ private:
     UByte*              _data_buf;
     size_t              _data_length;
 
-    UByte               _buffer[PAGE_SIZE * 1000];
-    UByte*              _cur;
+    //UByte               _buffer[PAGE_SIZE * 1000];
+    //UByte*              _cur;
 
 public:
     static const size_t BUFFER_SIZE = PAGE_SIZE / 2;
@@ -91,9 +91,9 @@ public:
 
         _data_length = _stream->Size();
 
-        //XXX:HACK
-        _stream->Read(_buffer, _stream->Size(), 0);
-        _cur = _buffer;
+        //XXX: For EXT2 + PATA
+        //_stream->Read(_buffer, _stream->Size(), 0);
+        //_cur = _buffer;
     }
 
     void Clear()
@@ -136,7 +136,6 @@ public:
             lvi = (lvi == 31) ? NUM_SLOT - 1 : lvi + NUM_SLOT;
             index = lvi - (NUM_SLOT - 1);
 
-            /*XXX: HACK
             stat_t err = _stream->Read(_data_buf + BUFFER_SIZE * index,
                                        BUFFER_SIZE * NUM_SLOT, &rsize);
             if (err != ERR_NONE) {
@@ -146,10 +145,11 @@ public:
                 DOUT("%s\n", stat2msg[err]);
                 BREAK("err");
             }
-            */
+            /*XXX: For EXT2 + PATA
             memcpy(_data_buf + BUFFER_SIZE * index, _cur,
                    BUFFER_SIZE * NUM_SLOT);
             _cur += BUFFER_SIZE * NUM_SLOT;
+            */
 
             if (_data_length < rsize) {
                 // Disable all the interrupt on completion
