@@ -21,12 +21,15 @@ ReadTSC(unsigned long* hi, unsigned long* lo)
 class PCMPlayer : public AudioChannelListener
 {
 private:
-    static const size_t NUM_SLOT = 8;
+    static const size_t NUM_SLOT = 16;
     WaveStream*         _stream;
     AC97Channel*        _channel;
     AC97DescriptorList* _list;
     UByte*              _data_buf;
     size_t              _data_length;
+
+    UByte               _buffer[PAGE_SIZE * 1000];
+    UByte*              _cur;
 
 public:
     static const size_t BUFFER_SIZE = PAGE_SIZE / 2;
@@ -42,8 +45,9 @@ public:
         }
 
         // Allocate the buffer where audio data is stored.
-        _data_buf = (UByte*)palloc(BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE);
-        for (int i = 0; i < 8; i++) {
+        size_t num = BUFFER_SIZE * AC97DescriptorList::SIZE / PAGE_SIZE;
+        _data_buf = (UByte*)palloc(num);
+        for (int i = 0; i < num; i++) {
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
         }
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
@@ -86,6 +90,10 @@ public:
         DOUT("Initial LVI %lu CIV %lu\n", init_lvi, civ);
 
         _data_length = _stream->Size();
+
+        //XXX:HACK
+        _stream->Read(_buffer, _stream->Size(), 0);
+        _cur = _buffer;
     }
 
     void Clear()
@@ -128,6 +136,7 @@ public:
             lvi = (lvi == 31) ? NUM_SLOT - 1 : lvi + NUM_SLOT;
             index = lvi - (NUM_SLOT - 1);
 
+            /*XXX: HACK
             stat_t err = _stream->Read(_data_buf + BUFFER_SIZE * index,
                                        BUFFER_SIZE * NUM_SLOT, &rsize);
             if (err != ERR_NONE) {
@@ -137,8 +146,11 @@ public:
                 DOUT("%s\n", stat2msg[err]);
                 BREAK("err");
             }
+            */
+            memcpy(_data_buf + BUFFER_SIZE * index, _cur,
+                   BUFFER_SIZE * NUM_SLOT);
+            _cur += BUFFER_SIZE * NUM_SLOT;
 
-            DOUT("rsize %u\n", rsize);
             if (_data_length < rsize) {
                 // Disable all the interrupt on completion
                 for (UInt i = 0; i < AC97DescriptorList::SIZE; i++) {
@@ -165,12 +177,12 @@ public:
             }
         }
 
-        UInt _stat = _channel->GetStatus();
-        UByte _lvi = (_stat >> 8) & 0xFF;
-        UShort _sr = _stat >> 16;
-        DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", _sr, _lvi, _stat & 0xFF);
+        //UInt _stat = _channel->GetStatus();
+        //UByte _lvi = (_stat >> 8) & 0xFF;
+        //UShort _sr = _stat >> 16;
+        //DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", _sr, _lvi, _stat & 0xFF);
 
-        DOUT("\tupdate:\tsr:0x%X lvi:%u\n", sr, lvi);
+        //DOUT("\tupdate:\tsr:0x%X lvi:%u\n", sr, lvi);
         _channel->SetStatus(stat);
 
         return 0;

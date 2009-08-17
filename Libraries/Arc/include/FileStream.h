@@ -76,7 +76,7 @@ public:
 
     FileStream() {}
 
-    virtual ~FileStream() { DOUT("\n"); Disconnect(); }
+    virtual ~FileStream() { Disconnect(); }
 
     virtual stat_t Connect(L4_ThreadId_t tid)
     {
@@ -174,7 +174,7 @@ public:
 
             Int read = reg[0];
 
-            DOUT("copy 0x%lX -> %p\n", _ss->GetBaseAddress(), ptr);
+            //DOUT("copy 0x%lX -> %p\n", _ss->GetBaseAddress(), ptr);
             memcpy(reinterpret_cast<void*>(ptr),
                    reinterpret_cast<const void*>(_ss->GetBaseAddress()), read);
 

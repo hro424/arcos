@@ -34,7 +34,7 @@
 /// @since  April 2008
 ///
 
-#define SYS_DEBUG
+//#define SYS_DEBUG
 //#define SYS_DEBUG_CALL
 
 #include <Debug.h>
@@ -161,35 +161,6 @@ SelfHealingSessionServer::HandleDisconnect(const L4_ThreadId_t& tid,
     Deregister(c);
     L4_Clear(&msg);
     EXIT;
-    return ERR_NONE;
-}
-
-stat_t
-SelfHealingSessionServer::HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SelfHealingSessionServer::HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SelfHealingSessionServer::HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    L4_Clear(&msg);
-    return ERR_NONE;
-}
-
-stat_t
-SelfHealingSessionServer::HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
-{
-    System.Print("wrong handler\n");
-    L4_Clear(&msg);
     return ERR_NONE;
 }
 

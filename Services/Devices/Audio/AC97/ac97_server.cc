@@ -39,20 +39,19 @@ AC97Device::Initialize()
     PCI_Write16(ICH_AUDIO, PCI_PCICMD, 0);
     PCI_Write8(ICH_AUDIO, PCI_CFG, 0);
 
-    // The mapped registers for mixer require 512 bytes.
-    // The mapped registers for the bus master require 256 bytes.
-    _mapped_io = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
-    Pager.Map(_mapped_io, L4_ReadWriteOnly, MAPPED_IO_BASE, L4_nilthread);
     SetMixerBaseAddress(MAPPED_IO_BASE);
     SetBusMasterBaseAddress(MAPPED_IO_BASE + 1024);
-
-    _mixer.Initialize(_mapped_io);
-
-    AC97ServerChannel::Initialize(_mapped_io + 1024);
 
     // Activate the bus master
     PCI_Write16(ICH_AUDIO, PCI_PCICMD,
                 PCI_PCICMD_BME | PCI_PCICMD_MSE | PCI_PCICMD_IOSE);
+
+    // The mapped registers for mixer require 512 bytes.
+    // The mapped registers for the bus master require 256 bytes.
+    _mapped_io = palloc_shm(1, L4_Myself(), L4_ReadWriteOnly);
+    Pager.Map(_mapped_io, L4_ReadWriteOnly, MAPPED_IO_BASE, L4_nilthread);
+    _mixer.Initialize(_mapped_io);
+    AC97ServerChannel::Initialize(_mapped_io + 1024);
 
     for (int i = 0; i < 6; i++) {
         _channels[i].Reset();
@@ -109,10 +108,8 @@ stat_t
 AC97Device::EnableInterrupt()
 {
     stat_t err;
-    ENTER;
     err = InterruptManager::Instance()->Register(this, IRQ_AC97Server);
     _int_enabled = TRUE;
-    EXIT;
     return err;
 }
 
@@ -120,22 +117,18 @@ AC97Device::EnableInterrupt()
 void
 AC97Device::DisableInterrupt()
 {
-    ENTER;
     InterruptManager::Instance()->Deregister(IRQ_AC97Server);
     _int_enabled = FALSE;
-    EXIT;
 }
 
 
 void
 AC97Device::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
 {
-    ENTER;
     L4_Msg_t    event;
 
     L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
     L4_Append(&event, AC97ServerChannel::GetGlobalStatus());
     Ipc::Call(_listener, &event, &event);
-    EXIT;
 }
 

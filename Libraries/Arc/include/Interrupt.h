@@ -97,6 +97,7 @@ public:
 class InterruptManager
 {
 private:
+
     static const UInt           NIRQ = 16;
     static const UInt           PRIO_IRQ = 120;
     static InterruptManager*    _self;
@@ -106,7 +107,6 @@ private:
     ///
     InterruptHelper*            _iht_table[NIRQ];
 
-protected:
     InterruptManager()
     {
         for (UInt i = 0; i < NIRQ; i++) {

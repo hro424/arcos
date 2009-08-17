@@ -7,6 +7,8 @@
 #include <NameService.h>
 #include <Thread.h>
 
+#include <Interrupt.h>
+
 struct AudioBuffer
 {
     // no members
@@ -40,6 +42,7 @@ public:
                 break;
             }
 
+            //DOUT("from %.8lX\n", _server.raw);
             if (L4_Label(tag) == MSG_EVENT_NOTIFY) {
                 if (_listener != 0) {
                     if (_listener->Handle() != 0) {
@@ -56,6 +59,42 @@ public:
     }
 };
 
+///
+
+class InterruptServer : public InterruptHandler
+{
+private:
+    L4_ThreadId_t   _listener;
+
+public:
+    static const UInt   IRQ_AC97 = 12;
+
+    InterruptServer() : _listener(L4_nilthread) {}
+
+    stat_t EnableInterrupt()
+    {
+        stat_t err;
+        err = InterruptManager::Instance()->Register(this, IRQ_AC97);
+        return err;
+    }
+
+    void DisableInterrupt()
+    { InterruptManager::Instance()->Deregister(IRQ_AC97); }
+
+    void AddListener(L4_ThreadId_t tid) { _listener = tid; }
+
+    void DelListener() { _listener = L4_nilthread; }
+
+    void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
+    {
+        L4_Msg_t event;
+
+        L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
+        Ipc::Call(_listener, &event, &event);
+    }
+};
+
+
 class AudioChannel
 {
 protected:
@@ -65,8 +104,10 @@ protected:
 
     virtual L4_Word_t Id() = 0;
 
+    InterruptServer     _ints;
+
 public:
-    AudioChannel(L4_ThreadId_t& server) : _server(server) { }
+    AudioChannel(L4_ThreadId_t& server) : _server(server) {}
 
     virtual ~AudioChannel()
     {
@@ -80,6 +121,7 @@ public:
         EXIT;
     }
 
+public:
     virtual stat_t Connect()
     {
         ENTER;
@@ -88,9 +130,13 @@ public:
         L4_Word_t   reg = Id();
         L4_Put(&msg, MSG_EVENT_CONNECT, 1, &reg, 0, 0);
         err = Ipc::Call(_server, &msg, &msg);
+        /* Also see AC97/server.cc
         if (err == ERR_NONE) {
             _int_server.raw = L4_Get(&msg, 0);
         }
+        */
+        _ints.EnableInterrupt();
+        _int_server = _ints.Id();
         EXIT;
         return err;
     }
@@ -101,8 +147,10 @@ public:
         L4_Msg_t    msg;
         L4_Word_t   reg = Id();
         L4_Put(&msg, MSG_EVENT_DISCONNECT, 1, &reg, 0, 0);
-        EXIT;
+        _ints.DisableInterrupt();
+        _int_server = L4_nilthread;
         Ipc::Call(_server, &msg, &msg);
+        EXIT;
     }
 
     ///
@@ -120,6 +168,8 @@ public:
         if (_int_thread == 0) {
             return ERR_NOT_FOUND;
         }
+
+        _ints.AddListener(_int_thread->Id());
 
         reg[0] = Id();
         _int_thread->Start();
@@ -139,6 +189,8 @@ public:
     virtual void Stop()
     {
         ENTER;
+
+        _ints.DelListener();
 
         L4_Word_t   reg[2];
         L4_Msg_t    msg;

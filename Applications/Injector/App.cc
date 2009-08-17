@@ -34,8 +34,6 @@
 /// @since  March 2008
 ///
 
-//$Id: App.cc 349 2008-05-29 01:54:02Z hro $
-
 #include <Ipc.h>
 #include <FaultInjection.h>
 #include <NameService.h>

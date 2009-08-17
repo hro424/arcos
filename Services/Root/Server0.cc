@@ -388,12 +388,11 @@ HandleSetInterrupt(L4_Msg_t *msg)
 
     th.raw = L4_Get(msg, 0);
 
-    /*
     System.Print("Attach interrupt %.8lX to %.8lX\n",
                  L4_GlobalId(L4_Version(th), 1).raw,
                  L4_GlobalId(L4_ThreadNo(th),
                              Thread::TID_INITIAL_VERSION).raw);
-                             */
+    L4_DeassociateInterrupt(L4_GlobalId(L4_Version(th), 1));
     L4_AssociateInterrupt(L4_GlobalId(L4_Version(th), 1),
                           L4_GlobalId(L4_ThreadNo(th),
                                       Thread::TID_INITIAL_VERSION));

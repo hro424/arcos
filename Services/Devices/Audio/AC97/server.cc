@@ -14,18 +14,7 @@
 #include <PageAllocator.h>
 #include <MemoryManager.h>
 
-//
-// Status:
-// - Interrupt enable/disable
-// - Bus master base address    -> FIXED
-// - Bus master configuration and status    -> On the register
-// - Mixer base address         -> FIXED
-// - Mixer configuration        -> On the register
-// - Mapped I/O -> Reallocate, remap
-// - DMA base address           -> On the register
-// - Channel active/inactive    -> On the register
-// - Client TID -> PM
-//
+static size_t   _ij_counter = 0;
 
 class AC97Server : public SelfHealingServer
 {
@@ -48,10 +37,15 @@ public:
         return ERR_NONE;
     }
 
-    virtual stat_t Recover()
+    virtual stat_t Recover(Int argc, char* argv[])
     {
+        ENTER;
         _device.Recover();
-
+        AC97ServerChannel*  channel;
+        channel = _device.Channel(1);
+        L4_Word_t stat = channel->GetStatus32();
+        DOUT("stat: %.8lX\n", stat);
+        EXIT;
         return ERR_NONE;
     }
 
@@ -69,10 +63,10 @@ public:
     stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
-        _device.EnableInterrupt();
+        //XXX: Tempolarily unavailable due to recovery of interrupt handler
+        //_device.EnableInterrupt();
         L4_Word_t reg = _device.Id().raw;
         L4_Put(&msg, ERR_NONE, 1, &reg, 0, 0);
-        //_connected = TRUE;
         EXIT;
         return ERR_NONE;
     }
@@ -80,8 +74,8 @@ public:
     stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
-        //_connected = FALSE;
-        _device.DisableInterrupt();
+        //XXX: Tempolarily unavailable due to recovery of interrupt handler
+        //_device.DisableInterrupt();
         EXIT;
         return ERR_NONE;
     }
@@ -147,6 +141,11 @@ public:
             }
             case AC97Channel::set_stat:
             {
+                _ij_counter++;
+                if (_ij_counter == 30) {
+                    *(UInt*)0 = _ij_counter;
+                }
+                DOUT("set %.8lX\n", L4_Get(&msg, 2));
                 channel->SetStatus32(L4_Get(&msg, 2));
                 L4_Clear(&msg);
                 break;

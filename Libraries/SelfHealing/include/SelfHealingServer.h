@@ -61,10 +61,30 @@ protected:
     virtual stat_t IpcHandler(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
     virtual stat_t HandleDisconnect(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg);
-    virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg);
+
+    virtual stat_t HandleBegin(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandleEnd(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandleGet(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
+
+    virtual stat_t HandlePut(const L4_ThreadId_t& tid, L4_Msg_t& msg)
+    {
+        L4_Clear(&msg);
+        return ERR_NONE;
+    }
 
     L4_ThreadId_t FindSpace(L4_ThreadId_t t)
     {
@@ -89,8 +109,8 @@ public:
         stat_t              err = ERR_UNKNOWN;                      \
         CLASS               instance;                               \
         SelfHealingServer&  server = instance;                      \
-        System.Print("Starting %s (%.8lX) ...\n",                   \
-                     argv[0], L4_Myself().raw);                     \
+        System.Print("Starting %s (%.8lX) stat:%d ...\n",           \
+                     argv[0], L4_Myself().raw, state);              \
         switch (state) {                                            \
             case 0:                                                 \
                 _shmalloc_init(VirtLayout::SHM_START, 0x100000);    \
