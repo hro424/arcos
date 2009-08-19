@@ -30,8 +30,8 @@ public:
         ENTER;
         _device.Initialize();
 
-        _device.Mixer()->SetMasterVolume(0x0808);
-        _device.Mixer()->SetPCMOutVolume(0x0808);
+        _device.Mixer()->SetMasterVolume(0x0404);
+        _device.Mixer()->SetPCMOutVolume(0x0404);
 
         EXIT;
         return ERR_NONE;
