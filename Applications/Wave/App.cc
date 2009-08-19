@@ -51,7 +51,8 @@ public:
             Pager.Map(((addr_t)_data_buf) + PAGE_SIZE * i, L4_ReadWriteOnly);
         }
         memset(_data_buf, 0, BUFFER_SIZE * AC97DescriptorList::SIZE);
-        DOUT("Data buffer allocated @ %p\n", _data_buf);
+        DOUT("Data buffer %lu bytes allocated @ %p\n",
+             BUFFER_SIZE * AC97DescriptorList::SIZE, _data_buf);
     }
 
     virtual ~PCMPlayer()
@@ -67,6 +68,15 @@ public:
             return;
         }
 
+        // Initialize the LVI register
+        UInt civ = _channel->GetStatus() & 0xFF;
+        UInt init_lvi = ((NUM_SLOT * 2 - 1) + civ) % 32;
+        _channel->SetStatus(init_lvi << 8);
+        //_channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
+        DOUT("Set Initial LVI %lu CIV %lu\n", init_lvi, civ);
+
+        UInt ioc_index = (NUM_SLOT - 1 + civ) % NUM_SLOT;
+
         // Initialize the buffer descriptors
         for (size_t i = 0; i < AC97DescriptorList::SIZE; i++) {
             _list->desc[i].address =
@@ -75,19 +85,13 @@ public:
             _list->desc[i].length = BUFFER_SIZE / _stream->GetNumChannels();
 
             // Get interrupted by every NUM_SLOT
-            if (i % NUM_SLOT == NUM_SLOT - 1) {
+            //if (i % NUM_SLOT == NUM_SLOT - 1) {
+            if (i % NUM_SLOT == ioc_index) {
                 _list->desc[i].ioc = 1;
             }
             DOUT("desc[%2lu] %.8lX %.8lX\n",
                  i, _list->desc[i].raw[0], _list->desc[i].raw[1]);
         }
-
-        // Initialize the LVI register
-        UInt civ = _channel->GetStatus() & 0xFF;
-        UInt init_lvi = ((NUM_SLOT * 2 - 1) + civ) % 32;
-        _channel->SetStatus(init_lvi << 8);
-        //_channel->SetStatus((NUM_SLOT * 2 - 1) << 8);
-        DOUT("Initial LVI %lu CIV %lu\n", init_lvi, civ);
 
         _data_length = _stream->Size();
 
@@ -117,12 +121,14 @@ public:
         UInt    stat;
         UInt    index;
         UByte   lvi;
+        UByte   civ;
         UShort  sr;
 
         stat = _channel->GetStatus();
         lvi = (stat >> 8) & 0xFF;
+        civ = stat & 0xFF;
         sr = stat >> 16;
-        DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", sr, lvi, stat & 0xFF);
+        //DOUT("\tstat:\tsr:0x%X lvi:%u civ:%u\n", sr, lvi, stat & 0xFF);
 
         //TODO: Convert 22.5/44.1KHz audio to the AC97's native
         //      frequency (48KHz)
@@ -133,7 +139,8 @@ public:
             }
 
             // Calculate the next LVI
-            lvi = (lvi == 31) ? NUM_SLOT - 1 : lvi + NUM_SLOT;
+            //lvi = (lvi == 31) ? NUM_SLOT - 1 : lvi + NUM_SLOT;
+            lvi = (civ + 31) % 32;
             index = lvi - (NUM_SLOT - 1);
 
             stat_t err = _stream->Read(_data_buf + BUFFER_SIZE * index,
@@ -150,6 +157,11 @@ public:
                    BUFFER_SIZE * NUM_SLOT);
             _cur += BUFFER_SIZE * NUM_SLOT;
             */
+            /*
+            UByte* tmp = _data_buf + BUFFER_SIZE * index;
+            DOUT("%.2X %.2X %.2X %.2X %.2X %.2X %.2X %.2X\n",
+                 tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5], tmp[6], tmp[7]);
+                 */
 
             if (_data_length < rsize) {
                 // Disable all the interrupt on completion
@@ -219,13 +231,12 @@ main(int argc, char* argv[])
         }
     }
 
-    DOUT("using '%s' '%s'\n", server_name, file_name);
+    DOUT("processing '%s' '%s'\n", server_name, file_name);
 
     err = NameService::Get(server_name, &tid);
     if (err != ERR_NONE) {
         return -1;
     }
-    DOUT("fs: %.8lX\n", tid.raw);
 
     err = stream.Open(tid, file_name);
     if (err != ERR_NONE) {
@@ -264,6 +275,7 @@ main(int argc, char* argv[])
     // Wait for the playback end
     channel.Join();
 
+    System.Print("stop.\n");
     channel.Stop();
     System.Print("done.\n");
 

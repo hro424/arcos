@@ -413,6 +413,9 @@ HandleUnsetInterrupt(L4_Msg_t *msg)
     }
 
     th.raw = L4_Get(msg, 0);
+
+    System.Print("Detach interrupt %.8lX\n",
+                 L4_GlobalId(L4_Version(th), 1).raw);
     L4_DeassociateInterrupt(L4_GlobalId(L4_Version(th), 1));
 
     EXIT;

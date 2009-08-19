@@ -141,11 +141,11 @@ public:
             }
             case AC97Channel::set_stat:
             {
+                DOUT("set %.8lX\n", L4_Get(&msg, 2));
                 _ij_counter++;
                 if (_ij_counter == 30) {
                     *(UInt*)0 = _ij_counter;
                 }
-                DOUT("set %.8lX\n", L4_Get(&msg, 2));
                 channel->SetStatus32(L4_Get(&msg, 2));
                 L4_Clear(&msg);
                 break;

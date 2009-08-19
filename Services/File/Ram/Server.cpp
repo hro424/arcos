@@ -33,8 +33,6 @@
 /// @since  August 2008
 ///
 
-//$Id: Server.cpp 429 2008-11-01 02:24:02Z hro $
-
 #include <Debug.h>
 #include <Ipc.h>
 #include <MemoryAllocator.h>

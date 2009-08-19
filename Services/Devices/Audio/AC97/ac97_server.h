@@ -91,6 +91,11 @@ public:
      */
     static UInt GetGlobalStatus() { return BMRead32(AC97_IO_GLOB_STA); }
 
+    static void ColdReset()
+    {
+        SetGlobalControl(0);
+        SetGlobalControl(2);
+    }
 
     AC97ServerChannel(UByte ch_base) : _ch_base(ch_base) {}
 

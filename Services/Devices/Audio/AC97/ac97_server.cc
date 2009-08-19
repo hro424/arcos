@@ -52,6 +52,8 @@ AC97Device::Initialize()
     Pager.Map(_mapped_io, L4_ReadWriteOnly, MAPPED_IO_BASE, L4_nilthread);
     _mixer.Initialize(_mapped_io);
     AC97ServerChannel::Initialize(_mapped_io + 1024);
+    DOUT("GLOB_CNT:%.8lX\n", AC97ServerChannel::GetGlobalControl());
+    AC97ServerChannel::ColdReset();
 
     for (int i = 0; i < 6; i++) {
         _channels[i].Reset();
