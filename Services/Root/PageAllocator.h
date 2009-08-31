@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2007, 2008, Waseda University.
+ *  Copyright (C) 2007, 2008, 2009, Waseda University.
  *  All rights reserved.
  *
  *
@@ -34,12 +34,15 @@
 /// @since  2007
 ///
 
-// $Id: PageAllocator.h 349 2008-05-29 01:54:02Z hro $
 
 #ifndef ARC_PAGE_ALLOC_H
 #define ARC_PAGE_ALLOC_H
 
+#include <Debug.h>
+#include <String.h>
 #include <Types.h>
+#include "PageFrameTable.h"
+
 #ifdef BUDDY_ALLOCATOR
 #include "BuddyAllocator.h"
 #endif // BUDDY_ALLOCATOR
@@ -55,7 +58,14 @@ private:
     BuddyAllocator  _ba;
 #endif // BUDDY_ALLOCATOR
 
-    void Clear(PageFrame *frame);
+    ///
+    /// Sets the whole physical page to 0.
+    ///
+    void Clear(PageFrame *frame)
+    {
+        L4_Word_t   addr = _pft->GetAddress(frame);
+        memset((void *)addr, 0, PAGE_SIZE);
+    }
 
 public:
     PageAllocator() : _pft(0) {}
@@ -66,17 +76,32 @@ public:
     /// Initialization method
     /// @param The PageFrameTable describing the memory area to manage.
     ///
-    void Initialize(PageFrameTable *pft);
+    void Initialize(PageFrameTable *pft)
+    {
+        ENTER;
+        _pft = pft;
+#ifdef BUDDY_ALLOCATOR
+        // The memory after PFT is reserved for page allocate objects.
+        // See CreateMainPft().
+        //_ba = (BuddyAllocator *)(pft->Table() + pft->Length());
+        _ba.Initialize(pft);
+#endif // BUDDY_ALLOCATOR
+        EXIT;
+    }
+
 
     ///
     /// Allocate a memory block of count pages.
     /// The allocated block is returned in frame.
     ///
     virtual stat_t Allocate(L4_Word_t count, PageFrame **frame);
+
     virtual stat_t Allocate(L4_Word_t count, addr_t *phys);
 
     virtual stat_t Release(PageFrame *frame);
-    virtual stat_t Release(addr_t phys);
+
+    virtual stat_t Release(addr_t phys)
+    { return this->Release(_pft->GetFrame(phys)); }
 
     /// 
     /// Get the PageFrame corresponding to the physical address given in
@@ -94,7 +119,12 @@ public:
     ///
     //virtual size_t Used();
 
-    virtual void PrintMemoryUsage();
+    virtual void PrintMemoryUsage()
+    {
+#ifdef BUDDY_ALLOCATOR
+        _ba.PrintMemoryUsage();
+#endif
+    }
 };
 
 #endif // ARC_PAGE_ALLOC_H

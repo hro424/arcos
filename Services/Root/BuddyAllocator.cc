@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2006, 2007, 2008, Waseda University.
+ *  Copyright (C) 2006, 2007, 2008, 2009, Waseda University.
  *  All rights reserved.
  *
  *
@@ -33,8 +33,6 @@
 /// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  2006
 ///
-
-// $Id: BuddyAllocator.cc 349 2008-05-29 01:54:02Z hro $
 
 #include <Assert.h>
 #include <Debug.h>
@@ -281,21 +279,12 @@ BuddyAllocator::Release(PageFrame *frame)
 void
 BuddyAllocator::PrintMemoryUsage()
 {
-/*
     Int free_count = 0;
-
-    printf("-- Buddy Allocator Dump --\n");
-    printf("order count   pages\n");
-    for (UInt i = 0; i < MAX_ORDER; i++) {
+    for (size_t i = 0; i < MAX_ORDER; i++) {
         free_count += (1 << i) * _bins[i].count;
-        printf("%5lu %5u %7u\n", i, _bins[i].count, (1 << i) * _bins[i].count);
     }
-
-    printf("%8ld pages are in use\n", _allocated);
-    printf("%8ld pages are free\n", free_count);
-    printf("%8ld pages are reserved\n", _reserved);
-    printf("-- Buddy Allocator Dump End --\n");
-*/
+    System.Print("BA: InUse     Free      Reserved\n");
+    System.Print("    %8ld  %8ld  %8ld\n", _allocated, free_count, _reserved);
 }
 
 void

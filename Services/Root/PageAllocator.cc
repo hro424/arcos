@@ -34,7 +34,6 @@
 /// @since  2007
 ///
 
-// $Id: PageAllocator.cc 349 2008-05-29 01:54:02Z hro $
 
 #include <Assert.h>
 #include <String.h>
@@ -46,30 +45,6 @@
 #include "BuddyAllocator.h"
 #endif // BUDDY_ALLOCATOR
 
-///
-/// Sets the whole physical page to 0.
-///
-void
-PageAllocator::Clear(PageFrame *frame)
-{
-    L4_Word_t   addr = _pft->GetAddress(frame);
-    memset((void *)addr, 0, PAGE_SIZE);
-}
-
-void
-PageAllocator::Initialize(PageFrameTable *pft)
-{
-    ENTER;
-    _pft = pft;
-#ifdef BUDDY_ALLOCATOR
-    // The memory after PFT is reserved for page allocate objects.
-    // See CreateMainPft().
-    //_ba = (BuddyAllocator *)(pft->Table() + pft->Length());
-    //DOUT("BuddyAllocator allocated @ %p\n", _ba);
-    _ba.Initialize(pft);
-#endif // BUDDY_ALLOCATOR
-    EXIT;
-}
 
 stat_t
 PageAllocator::Allocate(L4_Word_t count, PageFrame **frame)
@@ -97,6 +72,8 @@ PageAllocator::Allocate(L4_Word_t count, PageFrame **frame)
     }
     *frame = obj;
 
+    //XXX: Demo code
+    PrintMemoryUsage();
     EXIT;
     return ERR_NONE;
 }
@@ -134,11 +111,6 @@ PageAllocator::Release(PageFrame *frame)
     return ERR_NONE;
 }
 
-stat_t
-PageAllocator::Release(addr_t phys)
-{
-    return this->Release(_pft->GetFrame(phys));
-}
 
 stat_t
 PageAllocator::GetFrameForAddress(addr_t phys, PageFrame **frame)
@@ -147,13 +119,5 @@ PageAllocator::GetFrameForAddress(addr_t phys, PageFrame **frame)
     if (!f) return ERR_NOT_FOUND;
     *frame = f;
     return ERR_NONE;
-}
-
-void
-PageAllocator::PrintMemoryUsage()
-{
-#ifdef BUDDY_ALLOCATOR
-    _ba.PrintMemoryUsage();
-#endif
 }
 

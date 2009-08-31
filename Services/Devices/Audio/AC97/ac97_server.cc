@@ -129,6 +129,10 @@ AC97Device::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
 {
     L4_Msg_t    event;
 
+    //XXX: Demo code
+    char* dummy = (char*)palloc(1);
+    *dummy = 1;
+
     L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
     L4_Append(&event, AC97ServerChannel::GetGlobalStatus());
     Ipc::Call(_listener, &event, &event);

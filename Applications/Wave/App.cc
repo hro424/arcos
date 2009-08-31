@@ -206,7 +206,7 @@ int
 main(int argc, char* argv[])
 {
     static const char*  DEFAULT_SERVER = "ram";
-    static const char*  DEFAULT_FILE = "vitamin_b.wav";
+    static const char*  DEFAULT_FILE = "deed_i_do.wav";
     L4_ThreadId_t       tid;
     WaveStream          stream;
     AC97Audio           audio;

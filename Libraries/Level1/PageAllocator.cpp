@@ -43,12 +43,12 @@
 #include <System.h>
 #include <sys/Config.h>
 
-// Header for a free region of pages
+// Header for a free region that consists of contiguous pages
 struct Header
 {
     Header  *next;  // Next free region
     size_t  count;  // Number of pages in the region, or
-                    // Total free pages (for _free_list)
+                    // total free pages (for _free_list)
 };
 
 static Header           *_base;
