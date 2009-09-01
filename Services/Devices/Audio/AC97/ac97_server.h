@@ -273,9 +273,11 @@ public:
     ///
     /// Initializes the instance.
     ///
-    stat_t Initialize();
+    stat_t InitializeDevice();
 
     void Recover();
+
+    void Initialize();
 
     ///
     /// Cleans up the instance.

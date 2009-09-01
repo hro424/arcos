@@ -33,7 +33,6 @@
 /// @author Hiroo Ishikawa <ishikawa@dcl.info.waseda.ac.jp>
 /// @since  February 2008
 
-//$Id: Command.h 410 2008-09-08 12:00:15Z hro $
 
 #ifndef ARC_MICRO_SHELL_COMMAND_H
 #define ARC_MICRO_SHELL_COMMAND_H

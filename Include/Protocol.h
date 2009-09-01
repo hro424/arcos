@@ -111,6 +111,7 @@
 #define MSG_ROOT_KILL               0x0100
 #define MSG_ROOT_FIND_AS            0x0110
 #define MSG_ROOT_INJECT             0x0200
+#define MSG_ROOT_FREE_COUNT         0x0210
 
 //
 //  Shadow Task

@@ -34,7 +34,6 @@
 /// @since  January 2008
 ///
 
-//$Id: List.h 349 2008-05-29 01:54:02Z hro $
 
 #ifndef ARC_CONTAINER_LIST_H
 #define ARC_CONTAINER_LIST_H

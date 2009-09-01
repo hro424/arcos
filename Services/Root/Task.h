@@ -92,7 +92,7 @@ stat_t CreateThread(Space *space, Thread **thread);
 ///
 /// @param thread       the thread object
 ///
-stat_t DeleteThread(Thread *thread);
+stat_t TerminateThread(Thread *thread);
 
 ///
 /// Allocates a page for the stack in the space.  Note, the stack is placed

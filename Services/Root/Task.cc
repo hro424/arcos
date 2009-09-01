@@ -155,12 +155,8 @@ Deregister(Space* s)
 static Space*
 CreateSpace(Bool shadow)
 {
-    ENTER;
-
     Space* s = new Space(_kipArea, _utcbArea, _utcbSize, shadow);
     Register(s);
-
-    EXIT;
     return s;
 }
 
@@ -173,8 +169,6 @@ static void
 DeleteSpace(Space* s)
 {
     Deregister(s);
-    DOUT("Deleting space %.8lX\n", s->GetRootThread());
-    DeleteThread(const_cast<Thread*>(s->GetRootThread()));
     delete s;
 }
 
@@ -267,24 +261,15 @@ exit:
 stat_t
 DeleteTask(Space* space)
 {
-    /*
-    Thread* root;
-    Thread* th;
-    Thread* ptr;
-    */
-
     ENTER;
 
     // Terminate and delete all the resident threads
-    /*
-    root = space->GetRootThread();
-    th = lh_entry(root->Link.next, Thread, Link);
-    while (th != root) {
-        ptr = th;
-        th = lh_entry(root->Link.next, Thread, Link);
-        DeleteThread(ptr);
+    List<Thread*>& list = space->GetResidents();
+    Iterator<Thread*>& it = list.GetIterator();
+    while (it.HasNext()) {
+        Thread* th = it.Next();
+        TerminateThread(th);
     }
-    */
 
     // Delete the space
     DeleteSpace(space);
@@ -326,7 +311,7 @@ CreateThread(Space *space, Thread **th)
     Thread* thread;
     ENTER;
 
-    err = space->CreateThread(&thread);
+    err = space->CreateThreadObj(&thread);
     if (err != ERR_NONE) {
         return err;
     }
@@ -349,7 +334,7 @@ CreateThread(Space *space, Thread **th)
     else {
         System.Print(System.ERROR, "Couldn't create thread: %lu\n",
                      L4_ErrorCode());
-        space->DeleteThread(thread);
+        space->DeleteThreadObj(thread);
         err = (stat_t)L4_ErrorCode();
     }
     
@@ -358,11 +343,15 @@ CreateThread(Space *space, Thread **th)
 }
 
 stat_t
-DeleteThread(Thread* thread)
+TerminateThread(Thread* thread)
 {
     stat_t              err;
     L4_ThreadState_t    stat;
     ENTER;
+
+    if (thread->Irq != 0) {
+        L4_DeassociateInterrupt(L4_GlobalId(thread->Irq, 1));
+    }
 
     stat = L4_AbortIpc_and_stop(thread->Id);
     //System.Print("aborted thread %.8lX state %lu\n",
@@ -377,7 +366,7 @@ DeleteThread(Thread* thread)
     }
 
     // Deletes the thread object anyway.
-    thread->AddressSpace->DeleteThread(thread);
+    //thread->AddressSpace->DeleteThreadObj(thread);
 
     EXIT;
     return err;

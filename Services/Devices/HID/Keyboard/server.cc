@@ -34,7 +34,6 @@
 /// @since  February 2008
 ///
 
-//$Id: server.cc 429 2008-11-01 02:24:02Z hro $
 
 #include <Debug.h>
 #include <Interrupt.h>

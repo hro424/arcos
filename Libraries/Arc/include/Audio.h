@@ -42,7 +42,6 @@ public:
                 break;
             }
 
-            //DOUT("from %.8lX\n", _server.raw);
             if (L4_Label(tag) == MSG_EVENT_NOTIFY) {
                 if (_listener != 0) {
                     if (_listener->Handle() != 0) {
@@ -71,6 +70,8 @@ public:
 
     InterruptServer() : _listener(L4_nilthread) {}
 
+    ~InterruptServer() { DisableInterrupt(); }
+
     stat_t EnableInterrupt()
     {
         stat_t err;
@@ -87,10 +88,17 @@ public:
 
     void HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
     {
-        L4_Msg_t event;
+        L4_Msg_t    event;
+        stat_t      err;
 
-        L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
-        Ipc::Call(_listener, &event, &event);
+        //TODO: Control the priority.
+        if (!L4_IsNilThread(_listener)) {
+            L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
+            err = Ipc::Call(_listener, &event, &event);
+        }
+        else {
+            L4_ThreadSwitch(L4_nilthread);
+        }
     }
 };
 
@@ -104,6 +112,7 @@ protected:
 
     virtual L4_Word_t Id() = 0;
 
+    //XXX: Ad hoc solution
     InterruptServer     _ints;
 
 public:
@@ -113,9 +122,7 @@ public:
     {
         ENTER;
         if (_int_thread != 0) {
-            if (_int_thread->IsRunning()) {
-                _int_thread->Cancel();
-            }
+            Stop();
             delete _int_thread;
         }
         EXIT;
@@ -137,6 +144,7 @@ public:
         */
         _ints.EnableInterrupt();
         _int_server = _ints.Id();
+        DOUT("INT server %.8lX\n", _int_server.raw);
         EXIT;
         return err;
     }
@@ -169,10 +177,9 @@ public:
             return ERR_NOT_FOUND;
         }
 
-        _ints.AddListener(_int_thread->Id());
-
-        reg[0] = Id();
         _int_thread->Start();
+        _ints.AddListener(_int_thread->Id());
+        reg[0] = Id();
         reg[1] = _int_thread->Id().raw;
         L4_Put(&msg, MSG_EVENT_START, 2, reg, 0, 0);
         err = Ipc::Send(_server, &msg);

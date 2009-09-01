@@ -22,7 +22,7 @@ AC97ServerChannel AC97Device::_channels[AC97Channel::NUM_CHANNELS] =
 };
 
 stat_t
-AC97Device::Initialize()
+AC97Device::InitializeDevice()
 {
     System.Print("Initialize AC97 Audio Device\n");
     System.Print("VendorID:%.4lX DeviceID:%.4lX SVID:%.4lX SID:%.4lX BCC:%.2lX SCC:%.2lX\n",
@@ -63,6 +63,15 @@ AC97Device::Initialize()
     _int_enabled = FALSE;
 
     return ERR_NONE;
+}
+
+void
+AC97Device::Initialize()
+{
+    for (int i = 0; i < 6; i++) {
+        _channels[i].Deactivate();
+        _channels[i].Reset();
+    }
 }
 
 void
@@ -128,13 +137,14 @@ void
 AC97Device::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t* msg)
 {
     L4_Msg_t    event;
-
-    //XXX: Demo code
-    char* dummy = (char*)palloc(1);
-    *dummy = 1;
+    stat_t      err;
 
     L4_Put(&event, MSG_EVENT_NOTIFY, 0, 0, 0, 0);
     L4_Append(&event, AC97ServerChannel::GetGlobalStatus());
-    Ipc::Call(_listener, &event, &event);
+    err = Ipc::Call(_listener, &event, &event);
+    if (err != ERR_NONE) {
+        DisableInterrupt();
+        DelListener();
+    }
 }
 

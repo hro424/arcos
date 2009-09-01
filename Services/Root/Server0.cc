@@ -113,6 +113,8 @@ static stat_t HandleFindAS(L4_ThreadId_t tid, L4_Msg_t* msg);
 
 static stat_t HandleInject(L4_ThreadId_t tid, L4_Msg_t* msg);
 
+static stat_t HandleFreeCount(L4_ThreadId_t tid, L4_Msg_t* msg);
+
 
 void
 InitProcMan()
@@ -213,6 +215,9 @@ begin:
                 break;
             case MSG_NS_LIST:
                 HandleNsList(&msg);
+                break;
+            case MSG_ROOT_FREE_COUNT:
+                HandleFreeCount(peer, &msg);
                 break;
             default:
                 System.Print(System.WARN,
@@ -324,7 +329,7 @@ HandleCreateThread(L4_Msg_t *msg)
 
     // Create an inactive thread in the specified space
     // TID is automatically generated.
-    err = space->CreateThread(&thread);
+    err = space->CreateThreadObj(&thread);
     if (err != ERR_NONE) {
         return Ipc::ReturnError(msg, err);
     }
@@ -369,7 +374,8 @@ HandleDeleteThread(L4_ThreadId_t pel, L4_Msg_t *msg)
         return Ipc::ReturnError(msg, ERR_INVALID_THREAD);
     }
 
-    err = DeleteThread(thread);
+    err = TerminateThread(thread);
+    space->DeleteThreadObj(thread);
 
     EXIT;
     return Ipc::ReturnError(msg, err);
@@ -378,7 +384,9 @@ HandleDeleteThread(L4_ThreadId_t pel, L4_Msg_t *msg)
 static stat_t
 HandleSetInterrupt(L4_Msg_t *msg)
 {
+    Space*          space;
     L4_ThreadId_t   th;
+    Thread*         thread;
 
     ENTER;
 
@@ -388,14 +396,22 @@ HandleSetInterrupt(L4_Msg_t *msg)
 
     th.raw = L4_Get(msg, 0);
 
-    System.Print("Attach interrupt %.8lX to %.8lX\n",
+    if (FindTask(th, &space) != ERR_NONE) {
+        return Ipc::ReturnError(msg, ERR_INVALID_SPACE);
+    }
+
+    if (space->FindThread(th, &thread) != ERR_NONE) {
+        return Ipc::ReturnError(msg, ERR_INVALID_THREAD);
+    }
+
+    System.Print("Attach interrupt %u (%.8lX) to %.8lX\n", L4_Version(th),
                  L4_GlobalId(L4_Version(th), 1).raw,
-                 L4_GlobalId(L4_ThreadNo(th),
-                             Thread::TID_INITIAL_VERSION).raw);
+                 L4_GlobalId(L4_ThreadNo(th), Thread::TID_INITIAL_VERSION).raw);
     L4_DeassociateInterrupt(L4_GlobalId(L4_Version(th), 1));
     L4_AssociateInterrupt(L4_GlobalId(L4_Version(th), 1),
                           L4_GlobalId(L4_ThreadNo(th),
                                       Thread::TID_INITIAL_VERSION));
+    thread->Irq = L4_Version(th);
 
     EXIT;
     return Ipc::ReturnError(msg, ERR_NONE);
@@ -405,6 +421,8 @@ static stat_t
 HandleUnsetInterrupt(L4_Msg_t *msg)
 {
     L4_ThreadId_t   th;
+    Space*          space;
+    Thread*         thread;
 
     ENTER;
 
@@ -414,9 +432,18 @@ HandleUnsetInterrupt(L4_Msg_t *msg)
 
     th.raw = L4_Get(msg, 0);
 
-    System.Print("Detach interrupt %.8lX\n",
-                 L4_GlobalId(L4_Version(th), 1).raw);
+    if (FindTask(th, &space) != ERR_NONE) {
+        return Ipc::ReturnError(msg, ERR_INVALID_SPACE);
+    }
+
+    if (space->FindThread(th, &thread) != ERR_NONE) {
+        return Ipc::ReturnError(msg, ERR_INVALID_THREAD);
+    }
+
+    System.Print("Detach interrupt %u\n", L4_Version(th));
     L4_DeassociateInterrupt(L4_GlobalId(L4_Version(th), 1));
+
+    thread->Irq = 0;
 
     EXIT;
     return Ipc::ReturnError(msg, ERR_NONE);
@@ -786,6 +813,16 @@ HandleFindAS(L4_ThreadId_t tid, L4_Msg_t* msg)
     else {
         L4_Put(msg, ERR_NOT_FOUND, 0, 0, 0, 0);
     }
+    return ERR_NONE;
+}
+
+static stat_t
+HandleFreeCount(L4_ThreadId_t tid, L4_Msg_t* msg)
+{
+    L4_Word_t reg[2];
+    reg[0] = MainPft.FreeCount();
+    reg[1] = MainPft.Length();
+    L4_Put(msg, ERR_NONE, 2, reg, 0, 0);
     return ERR_NONE;
 }
 

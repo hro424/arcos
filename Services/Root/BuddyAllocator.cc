@@ -164,8 +164,8 @@ BuddyAllocator::AcquireBlock(unsigned int order, PageFrame **frame)
         PageFrame   *block;
         PageFrame   *buddy;
 
-	// Then we have to request a block of the next order of magnitude
-	// and split it
+        // Then we have to request a block of the next order of magnitude
+        // and split it
         if (AcquireBlock(order + 1, &block) != ERR_NONE) {
             return ERR_OUT_OF_MEMORY;
         }
@@ -217,7 +217,7 @@ BuddyAllocator::ReleaseBlock(PageFrame *frame)
 
         assert(_pft->IsValidFrame(buddy));
 
-	// If the buddy is free and not divided, we can merge the two blocks
+        // If the buddy is free and not divided, we can merge the two blocks
         if (buddy->GetPageGroup() == frame->GetPageGroup() &&
             buddy->GetType() == PAGE_TYPE_CONVENTIONAL &&
             buddy->GetState() == PAGE_STATE_FREE) {
@@ -228,7 +228,7 @@ BuddyAllocator::ReleaseBlock(PageFrame *frame)
             if (Merge(&frame, buddy) != ERR_NONE) {
                 FATAL("failed to merge buddies");
             }
-	    // Continue to try merging until no more possible
+            // Continue to try merging until no more possible
             return ReleaseBlock(frame);
         }
     }

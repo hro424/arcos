@@ -73,11 +73,16 @@ public:
 
     void Run()
     {
+        ENTER;
         L4_Msg_t        msg;
         L4_MsgTag_t     tag;
         L4_ThreadId_t   tid;
 
         tag = L4_Wait(&tid);
+        if (L4_IpcFailed(tag)) {
+            return;
+        }
+
         for (;;) {
             L4_Store(tag, &msg);
 
@@ -86,8 +91,12 @@ public:
 
             L4_Clear(&msg);
             L4_Load(&msg);
-            L4_ReplyWait(tid, &tid);
+            tag = L4_ReplyWait(tid, &tid);
+            if (L4_IpcFailed(tag)) {
+                break;
+            }
         }
+        EXIT;
     }
 
     InterruptHandler* GetHandler() const { return _handler; };
@@ -128,11 +137,6 @@ public:
     }
 
     ///
-    /// Destroys the InterruptManager.  This is a dangerous call.
-    ///
-    //static void Destroy();
-
-    ///
     /// Registers an interrupt handler to the specified IRQ.
     ///
     /// @param handler      the interrupt handler
@@ -158,7 +162,9 @@ public:
             }
 
             _iht_table[irq]->SetPriority(PRIO_IRQ);
-            _iht_table[irq]->Start();
+            DOUT("chk\n");
+            err = _iht_table[irq]->Start();
+            DOUT("check\n");
         }
 
         EXIT;

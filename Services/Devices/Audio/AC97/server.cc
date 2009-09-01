@@ -28,10 +28,10 @@ public:
     virtual stat_t Initialize(Int argc, char* argv[])
     {
         ENTER;
-        _device.Initialize();
+        _device.InitializeDevice();
 
-        _device.Mixer()->SetMasterVolume(0x0404);
-        _device.Mixer()->SetPCMOutVolume(0x0404);
+        _device.Mixer()->SetMasterVolume(0x0606);
+        _device.Mixer()->SetPCMOutVolume(0x0606);
 
         EXIT;
         return ERR_NONE;
@@ -63,6 +63,7 @@ public:
     stat_t HandleConnect(const L4_ThreadId_t& tid, L4_Msg_t& msg)
     {
         ENTER;
+        _device.Initialize();
         //XXX: Tempolarily unavailable due to recovery of interrupt handler
         //_device.EnableInterrupt();
         L4_Word_t reg = _device.Id().raw;
@@ -141,9 +142,13 @@ public:
             }
             case AC97Channel::set_stat:
             {
-                DOUT("set %.8lX\n", L4_Get(&msg, 2));
+                //XXX: Demo code
+                char* dummy = (char*)palloc(1);
+                *dummy = 1;
+
+                //DOUT("set %.8lX\n", L4_Get(&msg, 2));
                 _ij_counter++;
-                if (_ij_counter == 30) {
+                if (_ij_counter == 60) {
                     *(UInt*)0 = _ij_counter;
                 }
                 channel->SetStatus32(L4_Get(&msg, 2));

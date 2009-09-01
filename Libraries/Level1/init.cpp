@@ -34,7 +34,6 @@
 /// @since  April 2008
 ///
 
-//$Id: init.cpp 374 2008-08-07 05:48:21Z hro $
 
 #include <DebugStream.h>
 #include <System.h>

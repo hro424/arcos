@@ -48,6 +48,7 @@
 #include "Fexec.h"
 #include "Exec.h"
 #include "List.h"
+#include "Free.h"
 
 #define DEFAULT_FS  "ram"
 
@@ -66,6 +67,7 @@ main()
     static FexecCommand     fexec;
     static ExecCommand      exec;
     static ListCommand      list;
+    static FreeCommand      freemem;
 
     Parser parser;
 
@@ -75,6 +77,8 @@ main()
     parser.Register(&list);
     parser.Register(&ps);
     parser.Register(&kill);
+    parser.Register(&freemem);
+
     parser.Register(&fexec);
     parser.Register(&exec);
 

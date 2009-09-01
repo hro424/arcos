@@ -151,6 +151,7 @@ begin:
             case MSG_ROOT_RESTART:
             case MSG_ROOT_INJECT:
             case MSG_ROOT_FIND_AS:
+            case MSG_ROOT_FREE_COUNT:
                 err = Ipc::Call(Pel::RootTask(), &msg, &msg);
                 break;
             case MSG_ROOT_NS:
@@ -191,12 +192,13 @@ IpcHandler::HandleStartThread(L4_Msg_t *msg)
     tid.raw = L4_MsgWord(msg, 0);
     reg[0] = L4_MsgWord(msg, 1);
     reg[1] = L4_MsgWord(msg, 2);
-    //System.Print(DEBUG, "Thread start TID: %.8lX IP: %.8lX SP: %.8lX\n",
-    //           tid.raw, reg[0], reg[1]);
     //err = StartThread(tid, ip, sp);
 
     L4_Put(&start_msg, 0, 2, reg, 0, 0);
+    System.Print("PEL: Thread start TID: %.8lX IP: %.8lX SP: %.8lX\n",
+                 tid.raw, reg[0], reg[1]);
     err = Ipc::Send(tid, &start_msg);
+    System.Print("PEL: Started %.8lX\n", tid.raw);
 
     EXIT;
     return Ipc::ReturnError(msg, err);

@@ -14,9 +14,7 @@ private:
 public:
     virtual Bool Match(const char* str, size_t len)
     {
-        Bool ret;
-        ret = (strncmp(str, NAME, strlen(NAME)) == 0);
-        return ret;
+        return (strncmp(str, NAME, strlen(NAME)) == 0);
     }
 
     virtual stat_t Execute(int argc, char* argv[])

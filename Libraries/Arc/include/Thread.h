@@ -290,6 +290,7 @@ template <size_t STACK_SIZE>
 stat_t
 Thread<STACK_SIZE>::Start()
 {
+    ENTER;
     if (IsRunning()) {
         return ERR_NONE;
     }
@@ -302,8 +303,10 @@ Thread<STACK_SIZE>::Start()
     reg[1] = (L4_Word_t)BootStrap;
     reg[2] = _sp;
 
+    DOUT("\n");
     L4_Put(&msg, MSG_PEL_START_TH, 3, reg, 0, 0);
     err = Ipc::Call(L4_Pager(), &msg, &msg);
+    DOUT("\n");
     if (err != ERR_NONE) {
         return err;
     }
@@ -311,6 +314,7 @@ Thread<STACK_SIZE>::Start()
     SetState(RUNNING);
     L4_ThreadSwitch(_tid);
 
+    EXIT;
     return ERR_NONE;
 }
 

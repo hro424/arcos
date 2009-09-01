@@ -53,6 +53,7 @@ struct Thread
     L4_ThreadId_t       Id;
     Space*              AddressSpace;
     L4_Word_t           Utcb;
+    L4_Word_t           Irq;
 
     enum ThreadIdOffset {
         TID_S0_OFFSET =             0x00,   // Sigma0

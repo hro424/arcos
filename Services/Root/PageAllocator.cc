@@ -72,8 +72,6 @@ PageAllocator::Allocate(L4_Word_t count, PageFrame **frame)
     }
     *frame = obj;
 
-    //XXX: Demo code
-    PrintMemoryUsage();
     EXIT;
     return ERR_NONE;
 }

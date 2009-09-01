@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2006, 2007, 2008, Waseda University.
+ *  Copyright (C) 2006, 2007, 2008, 2009, Waseda University.
  *  All rights reserved.
  *
  *
@@ -34,7 +34,6 @@
 /// @since  2006
 ///
 
-//$Id: Space.cc 383 2008-08-28 06:49:02Z hro $
 
 #include <Debug.h>
 #include <Mutex.h>
@@ -103,10 +102,13 @@ Space::Space(L4_Fpage_t kip, L4_Fpage_t utcb, L4_Word_t usize, Bool shadow)
     _thread_context.Initialize();
 }
 
+
 Space::~Space()
 {
+    DeleteAllThreadObj();
     delete _utcb_map;
 }
+
 
 inline L4_Word_t
 Space::AllocateUtcb()
@@ -123,11 +125,6 @@ Space::AllocateUtcb()
     return utcb;
 }
 
-inline void
-Space::ReleaseUtcb(L4_Word_t utcb)
-{
-    _utcb_map->Reset((utcb - L4_Address(_utcb_area)) / _utcb_size);
-}
 
 inline L4_ThreadId_t
 Space::AllocateThreadId()
@@ -147,13 +144,6 @@ Space::AllocateThreadId()
     return tid;
 }
 
-inline void
-Space::ReleaseThreadId(L4_ThreadId_t tid)
-{
-    _tid_lock.Lock();
-    _tid_map->Reset(L4_ThreadNo(tid) - _tid_base);
-    _tid_lock.Unlock();
-}
 
 stat_t
 Space::CreateThread0(Thread** thread)
@@ -175,7 +165,6 @@ Space::CreateThread0(Thread** thread)
 
     utcb = AllocateUtcb();
     if (utcb == 0) {
-        DOUT("\n");
         ReleaseThreadId(tid);
         delete th;
         return ERR_OUT_OF_MEMORY;
@@ -184,6 +173,7 @@ Space::CreateThread0(Thread** thread)
     th->Id = tid;
     th->Utcb = utcb;
     th->AddressSpace = this;
+    th->Irq = 0;
 
     *thread = th;
 
@@ -192,7 +182,7 @@ Space::CreateThread0(Thread** thread)
 }
 
 stat_t
-Space::CreateThread(Thread** th)
+Space::CreateThreadObj(Thread** th)
 {
     Thread*     t;
     stat_t    err;
@@ -202,20 +192,37 @@ Space::CreateThread(Thread** th)
         return err;
     }
 
-    _residents.Append(t);
+    _residents.Add(t);
     *th = t;
 
     return ERR_NONE;
 }
 
+//XXX: This makes cleanup very difficult!  Better not to use List<>.
 void
-Space::DeleteThread(Thread *thread)
+Space::DeleteThreadObj(Thread *thread)
 {
-    if (thread != 0 && thread != _root) {
+    if (thread != 0) {
         _residents.Remove(thread);
         ReleaseUtcb(thread->Utcb);
         ReleaseThreadId(thread->Id);
         delete thread;
+    }
+}
+
+void
+Space::DeleteAllThreadObj()
+{
+    Iterator<Thread*>& it = _residents.GetIterator();
+
+    if (it.HasNext()) {
+        Thread* th1 = it.Next();
+        while (it.HasNext()) {
+            Thread* th2 = it.Next();
+            DeleteThreadObj(th1);
+            th1 = th2;
+        }
+        DeleteThreadObj(th1);
     }
 }
 
@@ -283,14 +290,6 @@ Space::SetMap(L4_Word_t address, PageFrame *frame)
     return result;
 }
 
-void
-Space::RemoveMap(L4_Word_t address)
-{
-    ENTER;
-    PageFrame*  dummy;
-    _map_db.Remove(address, dummy);
-    EXIT;
-}
 
 stat_t
 Space::SearchMap(L4_Word_t address, PageFrame **frame)

@@ -69,7 +69,7 @@ private:
     ///
     /// Count of managed pages
     ///
-    L4_Word_t   _count;
+    size_t      _count;
 
     ///
     /// Converts the address to the corresponding page frame number
@@ -142,10 +142,23 @@ public:
     ///
     /// @return the count of page table entries
     ///
-    addr_t Length() { return _count; }
+    size_t Length() { return _count; }
 
     Bool IsValidFrame(PageFrame *f) {
         return (_table <= f && f < _table_end);
+    }
+
+    size_t FreeCount()
+    {
+        size_t free_counter = 0;
+        for (PageFrame* cur = _table; cur < _table + _count; cur++) {
+            if (cur->GetType() == PAGE_TYPE_CONVENTIONAL) {
+                if (cur->GetState() == PAGE_STATE_FREE) {
+                    free_counter++;
+                }
+            }
+        }
+        return free_counter;
     }
 
     void PrintMemoryUsage();

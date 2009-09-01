@@ -149,11 +149,17 @@ private:
     ///
     /// @param utcb     the UTCB
     ///
-    void ReleaseUtcb(L4_Word_t utcb);
+    void ReleaseUtcb(L4_Word_t utcb)
+    { _utcb_map->Reset((utcb - L4_Address(_utcb_area)) / _utcb_size); }
 
     L4_ThreadId_t AllocateThreadId();
 
-    void ReleaseThreadId(L4_ThreadId_t tid);
+    void ReleaseThreadId(L4_ThreadId_t tid)
+    {
+        _tid_lock.Lock();
+        _tid_map->Reset(L4_ThreadNo(tid) - _tid_base);
+        _tid_lock.Unlock();
+    }
 
     ///
     /// Adds the thread object that runs in this address space to the list.
@@ -189,33 +195,37 @@ public:
 
     ~Space();
 
-    L4_ThreadId_t GetPager();
+    L4_ThreadId_t GetPager() { return _pager; }
 
-    Bool IsShadow();
+    Bool IsShadow() { return _shadow; }
 
-    const Thread* GetRootThread();
+    const Thread* GetRootThread() { return _root; }
 
-    void SetPager(L4_ThreadId_t tid);
+    List<Thread*>& GetResidents() { return _residents; }
 
-    const L4_Fpage_t& UtcbArea();
+    void SetPager(L4_ThreadId_t tid) { _pager = tid; }
 
-    const L4_Fpage_t& KipArea();
+    const L4_Fpage_t& UtcbArea() { return _utcb_area; }
+
+    const L4_Fpage_t& KipArea() { return _kip_area; }
 
     ///
     /// Creates a new thread object and adds it to the resident list.
-    /// Note, this doesn't actually create nor schedule the L4 thread.
+    /// NOTE: this doesn't actually create nor schedule the L4 thread.
     ///
     /// @param thread       the thread object
     ///
-    stat_t CreateThread(Thread** thread);
+    stat_t CreateThreadObj(Thread** thread);
 
     ///
-    /// Deletes the thread object.  Note, this doesn't actually stops the
-    /// thread.
+    /// Deletes the thread object.
+    /// NOTE: This doesn't actually stops the thread.
     ///
     /// @param thread       the thread object
     ///
-    void DeleteThread(Thread* thread);
+    void DeleteThreadObj(Thread* thread);
+
+    void DeleteAllThreadObj();
 
     ///
     /// Searches the thread object with the given thread ID.
@@ -256,7 +266,11 @@ public:
     ///
     /// @param address      the mapping destination
     ///
-    void RemoveMap(L4_Word_t address);
+    void RemoveMap(L4_Word_t address)
+    {
+        PageFrame*  dummy;
+        _map_db.Remove(address, dummy);
+    }
 
     ///
     /// Searches the mapping in the database.
@@ -279,42 +293,6 @@ public:
     void DumpMapDB();
     void DumpMap();
 };
-
-inline Bool
-Space::IsShadow()
-{
-    return _shadow;
-}
-
-inline L4_ThreadId_t
-Space::GetPager()
-{
-    return _pager;
-}
-
-inline const Thread*
-Space::GetRootThread()
-{
-    return _root;
-}
-
-inline void
-Space::SetPager(L4_ThreadId_t tid)
-{
-    _pager = tid;
-}
-
-inline const L4_Fpage_t&
-Space::UtcbArea()
-{
-    return _utcb_area;
-}
-
-inline const L4_Fpage_t&
-Space::KipArea()
-{
-    return _kip_area;
-}
 
 
 #endif // ARC_ROOT_SPACE_H
