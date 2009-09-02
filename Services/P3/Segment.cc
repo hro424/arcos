@@ -33,7 +33,6 @@
 /// @since  December 2007
 ///
 
-//$Id: Segment.cc 384 2008-08-28 18:38:10Z hro $
 
 #include <Ipc.h>
 #include <MemoryManager.h>
@@ -43,24 +42,6 @@
 
 #include "Pel.h"
 #include "Segment.h"
-
-void
-Segment::Release()
-{
-    stat_t err;
-    for (addr_t addr = _start; addr < _end; addr += PAGE_SIZE) {
-        err = Pager.Release(addr);
-    }
-}
-
-void
-Segment_Head::Initialize(addr_t start, addr_t end)
-{
-    _start = 0;
-    //_end = VirtLayout::USER_TEXT_START;
-    _end = VirtLayout::SHM_START;
-    DOUT("head segment: %.8lX - %.8lX\n", start, end);
-}
 
 stat_t
 Segment_Head::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
@@ -95,30 +76,6 @@ Segment_Head::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
     System.Print(System.ERROR, "[%.8lX] Access violation.\n", L4_Myself().raw);
     System.Print(System.ERROR, "virt %.8lX, ip %.8lX, rwx: %lX, from %.8lX\n",
          faddr, fip, *rwx, tid.raw);
-    *rwx = L4_NoAccess;
-    return ERR_INVALID_RIGHTS;
-}
-
-void
-Segment_Tail::Initialize(addr_t start, addr_t end) {
-    _start = VirtLayout::USER_STACK_END;
-    _end = ~0UL;
-    DOUT("tail segment: %.8lX - %.8lX\n", start, end);
-}
-
-void
-Segment_Tail::Initialize()
-{
-    this->Initialize(0, 0);
-}
-
-stat_t
-Segment_Tail::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
-                       L4_Word_t *rwx)
-{
-    System.Print(System.ERROR, "[%.8lX] Access violation.\n", L4_Myself().raw);
-    System.Print(System.ERROR, "virt %.8lX, ip %.8lX, rwx: %lX, from %.8lX\n",
-                 faddr, fip, *rwx, tid.raw);
     *rwx = L4_NoAccess;
     return ERR_INVALID_RIGHTS;
 }
@@ -229,22 +186,6 @@ PersistentSegment::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
     return ERR_NONE;
 }
 
-void
-SessionSegment::Initialize(addr_t start, addr_t end)
-{
-    _start = start;
-    _end = end;
-    DOUT("session segment: %.8lX - %.8lX\n", start, end);
-}
-
-stat_t
-SessionSegment::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
-                            L4_Word_t* rwx)
-{
-    DOUT("session segment\n");
-    return Pager.Map(faddr, L4_ReadWriteOnly);
-}
-
 stat_t
 HeapSegment::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
                       L4_Word_t *rwx)
@@ -269,36 +210,6 @@ HeapSegment::HandlePf(L4_ThreadId_t tid, L4_Word_t faddr, L4_Word_t fip,
     // Request one page to the root task
     Pager.Map(faddr, *rwx);
     return ERR_NONE;
-}
-
-addr_t
-HeapSegment::Grow(size_t count)
-{
-    addr_t newp = _end;
-
-    _end += PAGE_SIZE * count;
-    _cursor += PAGE_SIZE * count;
-
-    DOUT("heap grow: %.8lX -> %.8lX\n", newp, _end);
-    return newp;
-}
-
-void
-StackSegment::Initialize(addr_t start)
-{
-    _start = start - PAGE_SIZE;
-    _end = start;
-    _cursor = _end;
-    DOUT("stack segment: %.8lX - %.8lX\n", _start, _end);
-}
-
-addr_t
-StackSegment::Grow()
-{
-    addr_t  newp = _start;
-    _start -= PAGE_SIZE;
-    _cursor -= PAGE_SIZE;
-    return newp;
 }
 
 stat_t

@@ -34,12 +34,13 @@
 /// @since  December 2007
 ///
 
-//$Id: Segment.h 383 2008-08-28 06:49:02Z hro $
 
 #ifndef ARC_PEL2_SEGMENT_H
 #define ARC_PEL2_SEGMENT_H
 
 #include <Debug.h>
+#include <MemoryManager.h>
+#include <System.h>
 #include <Types.h>
 #include <sys/Config.h>
 #include <l4/types.h>
@@ -62,7 +63,8 @@ public:
     /// @param start    the start address of the segment
     /// @param end      the end address of the segment
     ///
-    virtual void Initialize(addr_t start, addr_t end) {
+    virtual void Initialize(addr_t start, addr_t end)
+    {
         _start = start;
         _end = end;
         DOUT("segment: %.8lX - %.8lX\n", start, end);
@@ -80,7 +82,14 @@ public:
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
                             L4_Word_t fip, L4_Word_t *rwx) = 0;
 
-    virtual void Release();
+    virtual void Release()
+    {
+        stat_t err;
+        for (addr_t addr = _start; addr < _end; addr += PAGE_SIZE) {
+            err = Pager.Release(addr);
+        }
+    }
+
 
     ///
     /// Tests if the given address is within the segment.
@@ -88,9 +97,7 @@ public:
     /// @param address      the address to be tested
     /// @return             the result of the test
     ///
-    Bool Hit(addr_t address) {
-        return (_start <= address) && (address < _end);
-    }
+    Bool Hit(addr_t address) { return (_start <= address) && (address < _end); }
 
     ///
     /// Obtains the start address of the segment.
@@ -125,7 +132,14 @@ public:
 class Segment_Head : public Segment
 {
 public:
-    virtual void Initialize(addr_t start = 0, addr_t end = 0);
+    virtual void Initialize(addr_t start = 0, addr_t end = 0)
+    {
+        _start = 0;
+        //_end = VirtLayout::USER_TEXT_START;
+        _end = VirtLayout::SHM_START;
+        DOUT("head segment: %.8lX - %.8lX\n", start, end);
+    }
+
 
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
                             L4_Word_t fip, L4_Word_t *rwx);
@@ -138,12 +152,32 @@ public:
 class Segment_Tail : public Segment
 {
 public:
-    virtual void Initialize(addr_t start, addr_t end);
+    virtual void Initialize(addr_t start, addr_t end)
+    {
+        _start = VirtLayout::USER_STACK_END;
+        _end = ~0UL;
+        DOUT("tail segment: %.8lX - %.8lX\n", start, end);
+    }
 
-    void Initialize();
+
+    void Initialize()
+    {
+        this->Initialize(0, 0);
+    }
+
 
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
-                            L4_Word_t fip, L4_Word_t *rwx);
+                            L4_Word_t fip, L4_Word_t *rwx)
+    {
+        System.Print(System.ERROR, "[%.8lX] Access violation.\n",
+                     L4_Myself().raw);
+        System.Print(System.ERROR,
+                     "virt %.8lX, ip %.8lX, rwx: %lX, from %.8lX\n",
+                     faddr, fip, *rwx, tid.raw);
+        *rwx = L4_NoAccess;
+        return ERR_INVALID_RIGHTS;
+    }
+
 };
 
 class TextSegment : public Segment
@@ -178,7 +212,8 @@ public:
 class HeapSegment : public GrowingSegment
 {
 public:
-    virtual void Initialize(addr_t start) {
+    virtual void Initialize(addr_t start)
+    {
         _start = start;
         _end = _start + PAGE_SIZE;
         _cursor = _end;
@@ -193,7 +228,18 @@ public:
     ///
     /// @return     the address of the expanded page
     ///
-    virtual addr_t Grow(size_t count);
+    virtual addr_t Grow(size_t count)
+    {
+        addr_t newp = _end;
+
+        _end += PAGE_SIZE * count;
+        _cursor += PAGE_SIZE * count;
+
+        DOUT("heap grow: %.8lX -> %.8lX\n", newp, _end);
+        return newp;
+    }
+
+
 };
 
 ///
@@ -202,10 +248,24 @@ public:
 class StackSegment : public GrowingSegment
 {
 protected:
-    addr_t Grow();
+    addr_t Grow()
+    {
+        addr_t  newp = _start;
+        _start -= PAGE_SIZE;
+        _cursor -= PAGE_SIZE;
+        return newp;
+    }
+
 
 public:
-    virtual void Initialize(addr_t start);
+    virtual void Initialize(addr_t start)
+    {
+        _start = start - PAGE_SIZE;
+        _end = start;
+        _cursor = _end;
+        DOUT("stack segment: %.8lX - %.8lX\n", _start, _end);
+    }
+
 
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
                             L4_Word_t fip, L4_Word_t *rwx);
@@ -214,12 +274,24 @@ public:
     virtual addr_t SetupArgs(addr_t heap, Int argc, char* argv[], Int state);
 };
 
+
 class SessionSegment : public Segment
 {
 public:
-    virtual void Initialize(addr_t start, addr_t end);
+    virtual void Initialize(addr_t start, addr_t end)
+    {
+        _start = start;
+        _end = end;
+        DOUT("session segment: %.8lX - %.8lX\n", start, end);
+    }
+
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
-                            L4_Word_t fip, L4_Word_t* rwx);
+                            L4_Word_t fip, L4_Word_t* rwx)
+    {
+        DOUT("session segment\n");
+        return Pager.Map(faddr, L4_ReadWriteOnly);
+    }
+
 };
 
 

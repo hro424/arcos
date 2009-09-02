@@ -35,7 +35,6 @@
 /// @since  2006
 ///
 
-// $Id: Task.cc 394 2008-09-02 11:49:53Z hro $
 
 #include <Debug.h>
 #include <Ipc.h>

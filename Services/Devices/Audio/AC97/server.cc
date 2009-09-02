@@ -41,10 +41,8 @@ public:
     {
         ENTER;
         _device.Recover();
-        AC97ServerChannel*  channel;
-        channel = _device.Channel(1);
+        AC97ServerChannel* channel = _device.Channel(1); // PCM OUT channel
         L4_Word_t stat = channel->GetStatus32();
-        DOUT("stat: %.8lX\n", stat);
         EXIT;
         return ERR_NONE;
     }
