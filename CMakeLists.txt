@@ -31,7 +31,6 @@
 ##  @since  November 2007
 ##
 
-#$Id: CMakeLists.txt 417 2008-09-10 05:41:59Z hro $
 
 cmake_minimum_required(VERSION 2.6)
 
