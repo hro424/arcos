@@ -257,19 +257,14 @@ main(int argc, char* argv[])
         return -1;
     }
 
-    DOUT("\n");
     player = new PCMPlayer(&stream, &channel);
-    DOUT("\n");
     player->Initialize();
-    DOUT("\n");
 
     channel.SetBuffer(player->GetBuffer());
-    DOUT("\n");
     channel.SetListener((AudioChannelListener*)player);
 
     System.Print("Playing '%s' ...\n", file_name);
 
-    DOUT("start!\n");
     err = channel.Start();
     if (err != ERR_NONE) {
         System.Print("Channel is busy.\n");

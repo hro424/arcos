@@ -162,9 +162,7 @@ public:
             }
 
             _iht_table[irq]->SetPriority(PRIO_IRQ);
-            DOUT("chk\n");
             err = _iht_table[irq]->Start();
-            DOUT("check\n");
         }
 
         EXIT;

@@ -34,10 +34,6 @@
 /// @since  April 2008
 ///
 
-//$Id: Server.cpp 426 2008-10-01 09:38:07Z hro $
-
-//#define SYS_DEBUG
-//#define SYS_DEBUG_CALL
 
 #include <Debug.h>
 #include <Ipc.h>
@@ -128,9 +124,7 @@ SelfHealingServer::Run(int state)
 begin:
     L4_Put(&msg, MSG_PEL_READY, 0, 0, 0, 0);
     Ipc::Send(L4_Pager(), &msg);
-    DOUT("waiting for a message.\n");
     tag = L4_Wait(&_sh_tid);
-    DOUT("message tag %.8lX\n", tag.raw);
     
     for (;;) {
         if (L4_IpcFailed(tag)) {
@@ -159,7 +153,6 @@ restore:
                          Name(), L4_Label(tag), _sh_tid.raw);
             break;
         }
-        //DOUT("%.8lX\n", msg.tag);
         L4_Load(&_sh_msg);
         tag = L4_ReplyWait(_sh_tid, &_sh_tid);
     }

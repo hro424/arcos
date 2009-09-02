@@ -37,7 +37,7 @@ include_directories(
 set(MODULE_NAME pata)
 set(VERBOSE_LEVEL 3)
 
-add_definitions(-DSYS_DEBUG)
+#add_definitions(-DSYS_DEBUG)
 #add_definitions(-DSYS_DEBUG_CALL)
 
 include(${CMAKE_SOURCE_DIR}/Tools/CMake/Driver.cmake)

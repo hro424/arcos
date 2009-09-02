@@ -89,11 +89,6 @@ KeyAcceptor::HandleInterrupt(L4_ThreadId_t tid, L4_Msg_t *msg)
     data = inb(0x60);
     DOUT("keycode: %lu (0x%.lX) -> %u listeners\n",
          data, data, _listeners.Length());
-    if (data == 9) {
-        L4_KDB_Enter("enter debug");
-        return;
-    }
-
     L4_Put(&event, MSG_EVENT_NOTIFY, 1, &data, 0, 0);
     while (it.HasNext()) {
         Ipc::Send(it.Next(), &event);
