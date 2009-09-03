@@ -107,7 +107,6 @@ Deregister(const char* name)
     stat_t      err;
 
     const char* base_name = get_base_name(name);
-    System.Print("deregister '%s'\n", base_name);
     len = (strlen(base_name) + 1 + sizeof(L4_Word_t) - 1) / sizeof(L4_Word_t);
     if (len >= __L4_NUM_MRS - 1) {
         len = __L4_NUM_MRS - 2;
@@ -195,15 +194,14 @@ restart:
         task.user_state = Task::USER_READY;
     }
 
-    DOUT("Start '%s'\n", path);
     // Run the main thread of the address space
     task.Start(argc, argv, task_state);
 
     ReadTSC(&hi, &lo);
-    System.Print("P3(%.8lX): Start (time %lu:%lu)\n", L4_Myself().raw, hi, lo);
+    System.Print("P3 [%.8lX]: Start (time %lX:%lX)\n", L4_Myself().raw, hi, lo);
     stat = handler.HandleIpc(&task);
     ReadTSC(&hi, &lo);
-    System.Print("P3(%.8lX): Exit (time %lu:%lu)\n", L4_Myself().raw, hi, lo);
+    System.Print("P3 [%.8lX]: Exit (time %lX:%lX)\n", L4_Myself().raw, hi, lo);
 
     if (stat != ERR_NONE || handler.UserExitCode() == 2) {
         if (task.user_state == Task::USER_READY) {
@@ -214,7 +212,6 @@ restart:
         }
         type = 0;   // Invalidate fault injection
         task.Unmap();
-        System.Print("Restart '%s'\n", path);
         goto restart;
     }
 

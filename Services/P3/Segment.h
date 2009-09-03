@@ -169,11 +169,6 @@ public:
     virtual stat_t HandlePf(L4_ThreadId_t tid, L4_Word_t faddr,
                             L4_Word_t fip, L4_Word_t *rwx)
     {
-        System.Print(System.ERROR, "[%.8lX] Access violation.\n",
-                     L4_Myself().raw);
-        System.Print(System.ERROR,
-                     "virt %.8lX, ip %.8lX, rwx: %lX, from %.8lX\n",
-                     faddr, fip, *rwx, tid.raw);
         *rwx = L4_NoAccess;
         return ERR_INVALID_RIGHTS;
     }

@@ -65,10 +65,8 @@ public:
     {                                                       \
         stat_t  err;                                        \
         CLASS   server;                                     \
-        System.Print("Starting %s (%.8lX) ...\n",           \
-                     argv[0], L4_Myself().raw);             \
         err = server.Initialize(argc, argv);                \
-        System.Print("'%s' (%.8lX) initialized.\n",         \
+        System.Print("'%s' [%.8lX] initialized.\n",         \
                      argv[0], L4_Myself().raw);             \
         if (err != ERR_NONE) {                              \
             return static_cast<int>(err);                   \
@@ -109,19 +107,17 @@ public:
     int server_main(int argc, char* argv[], int state) {    \
         stat_t              err = ERR_UNKNOWN;              \
         CLASS               instance;                       \
-        System.Print("Starting %s (%.8lX) ...\n",           \
-                     argv[0], L4_Myself().raw);             \
         SelfHealingServer&  server = instance;              \
         switch (state) {                                    \
             case 0:                                         \
                 err = server.Initialize(argc, argv);        \
-                System.Print("'%s' (%.8lX) initialized.\n", \
+                System.Print("'%s' [%.8lX] initialized.\n", \
                              argv[0], L4_Myself().raw);     \
                 break;                                      \
             case 1:                                         \
             case 2:                                         \
                 err = server.Recover(argc, argv);           \
-                System.Print("'%s' (%.8lX) recovered.\n",   \
+                System.Print("'%s' [%.8lX] recovered.\n",   \
                              argv[0], L4_Myself().raw);     \
                 break;                                      \
             default:                                        \

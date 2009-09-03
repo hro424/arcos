@@ -109,19 +109,17 @@ public:
         stat_t              err = ERR_UNKNOWN;                      \
         CLASS               instance;                               \
         SelfHealingServer&  server = instance;                      \
-        System.Print("Starting %s (%.8lX) stat:%d ...\n",           \
-                     argv[0], L4_Myself().raw, state);              \
         switch (state) {                                            \
             case 0:                                                 \
                 _shmalloc_init(VirtLayout::SHM_START, 0x100000);    \
                 err = server.Initialize(argc, argv);                \
-                System.Print("'%s' (%.8lX) initialized.\n",         \
+                System.Print("'%s' [%.8lX] initialized.\n",         \
                              argv[0], L4_Myself().raw);             \
                 break;                                              \
             case 1:                                                 \
             case 2:                                                 \
                 err = server.Recover(argc, argv);                   \
-                System.Print("'%s' (%.8lX) recovered.\n",           \
+                System.Print("'%s' [%.8lX] recovered.\n",           \
                              argv[0], L4_Myself().raw);             \
                 break;                                              \
             default:                                                \

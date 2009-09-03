@@ -195,10 +195,10 @@ IpcHandler::HandleStartThread(L4_Msg_t *msg)
     //err = StartThread(tid, ip, sp);
 
     L4_Put(&start_msg, 0, 2, reg, 0, 0);
-    System.Print("PEL: Thread start TID: %.8lX IP: %.8lX SP: %.8lX\n",
-                 tid.raw, reg[0], reg[1]);
+    //System.Print("P3: Thread start TID: %.8lX IP: %.8lX SP: %.8lX\n",
+    //             tid.raw, reg[0], reg[1]);
     err = Ipc::Send(tid, &start_msg);
-    System.Print("PEL: Started %.8lX\n", tid.raw);
+    //System.Print("P3: Started %.8lX\n", tid.raw);
 
     EXIT;
     return Ipc::ReturnError(msg, err);
@@ -358,12 +358,12 @@ IpcHandler::HandlePageFault(L4_ThreadId_t tid, L4_Msg_t *msg)
     fip = L4_Get(msg, 1);
     rwx = L4_Label(msg) & 0xF;
 
-    DOUT("PF @ %.8lX, ip %.8lX, rwx %lu\n", faddr, fip, rwx);
+    DOUT("PF @ %.8lX ip %.8lX rwx %lu\n", faddr, fip, rwx);
 
     segment = _task->GetSegment(faddr);
     if (segment == 0) {
         System.Print("address out of range\n");
-        System.Print("PF @ %.8lX, ip %.8lX, rwx %lu\n", faddr, fip, rwx);
+        System.Print("PF @ %.8lX ip %.8lX rwx %lu\n", faddr, fip, rwx);
         //return ERR_OUT_OF_RANGE;
         return ERR_FATAL;
     }
@@ -384,7 +384,7 @@ IpcHandler::HandlePageFault(L4_ThreadId_t tid, L4_Msg_t *msg)
     }
     else {
         System.Print("Invalid address\n");
-        System.Print("PF @ %.8lX, ip %.8lX, rwx %lu\n", faddr, fip, rwx);
+        System.Print("PF @ %.8lX ip %.8lX rwx %lu\n", faddr, fip, rwx);
         stat = Recover();
     }
 
